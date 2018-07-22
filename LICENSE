@@ -1,0 +1,6 @@
+ - Version - 
+   https://git.dorkbox.com/dorkbox/Version
+   Copyright 2012 - The Apache Software License, Version 2.0
+     dorkbox, llc
+   Plugin to set version information in maven POM, java or kotlin files, and git tags
+   Git tag code based upon 'gradle-git-version', Copyright 2015, Palantir Technologies. https://github.com/palantir/gradle-git-version
