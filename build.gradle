@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import dorkbox.license.License
-
 import java.nio.file.Paths
 import java.time.Instant
 
@@ -29,14 +27,18 @@ buildscript {
         project.ext.set(key, val)
     }
 
-    // for plugin publishing
     repositories {
         maven {
-            url "https://plugins.gradle.org/m2/"
+            url 'https://plugins.gradle.org/m2/'
         }
     }
     dependencies {
-        classpath "com.gradle.publish:plugin-publish-plugin:0.9.10"
+        // for plugin publishing
+        classpath 'com.gradle.publish:plugin-publish-plugin:0.9.10'
+
+        // for license sources
+        classpath 'gradle.plugin.com.dorkbox:Licensing:1.2.2'
+        classpath 'gradle.plugin.com.dorkbox:Licensing:1.2.2:sources'
     }
 }
 
@@ -46,20 +48,20 @@ plugins {
     id 'maven-publish'
     id 'signing'
 
-    id "org.jetbrains.kotlin.jvm" version "1.2.51"
-    id "com.dorkbox.Licensing" version "1.1.0"
+    id 'com.dorkbox.Licensing' version '1.1.0'
+    id 'org.jetbrains.kotlin.jvm' version '1.2.60'
 }
 
 // for publishing the plugin to gradle
-apply plugin: "com.gradle.plugin-publish"
+apply plugin: 'com.gradle.plugin-publish'
 
 
 project.description = 'Plugin to set version information in maven POM, java or kotlin files, and git tags'
 project.group = 'com.dorkbox'
 project.version = '1.0.0'
 
-project.ext.name = 'Gradle Licensing Plugin'
-project.ext.id = 'Version'
+project.ext.name = 'Gradle Version Update Plugin'
+project.ext.id = 'VersionUpdater'
 project.ext.website = 'https://dorkbox.com/'
 project.ext.url = 'https://git.dorkbox.com/dorkbox/Version'
 project.ext.tags = ['version', 'versioning']
@@ -88,36 +90,14 @@ repositories {
 
 
 dependencies {
-   implementation(project('Utilities')) {
-       // don't include any of the project dependencies for anything
-       transitive = false
-   }
+    compileOnly 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.60'
 
     implementation 'org.eclipse.jgit:org.eclipse.jgit:4.5.4+'
-
-    compileOnly 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.51'
+    implementation 'com.dorkbox:Version:1.0'
 
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-
     runtime group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.6'
-}
-
-
-project('Utilities') {
-    tasks.withType(Test) {
-        // want to remove utilities project from unit tests. It's unnecessary to run unit tests for the entire Utilities project
-        exclude('**/*')
-    }
-
-    tasks.withType(JavaCompile) {
-        options.encoding = 'UTF-8'
-        options.incremental = true
-        options.fork = true
-        options.forkOptions.executable = 'javac'
-
-        // setup compile options. we specifically want to suppress usage of "Unsafe"
-        options.compilerArgs = ['-XDignore.symbol.file', '-Xlint:deprecation']
-    }
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 tasks.withType(JavaCompile) {
@@ -135,39 +115,12 @@ tasks.withType(Jar) {
 }
 
 ///////////////////////////////
-//////    UTILITIES COMPILE (for inclusion into jars)
-///////////////////////////////
-task compileUtils(type: JavaCompile) {
-    // we don't want the default include of **/*.java
-    getIncludes().clear()
-
-    source = Collections.singletonList('../Utilities/src/dorkbox/util')
-    include('Version.java')
-
-    classpath = sourceSets.main.compileClasspath
-    destinationDir = file("$rootDir/build/classes_utilities")
-}
-
-///////////////////////////////
-//////    Jar Tasks
-///////////////////////////////
-jar {
-    dependsOn compileUtils
-
-    // include applicable class files from subset of Utilities project
-    from compileUtils.destinationDir
-}
-
-
-
-
-///////////////////////////////
 //////    Plugin Publishing + Release
 ///////////////////////////////
 gradlePlugin {
     plugins {
         Version {
-            id = 'com.dorkbox.Version'
+            id = 'com.dorkbox.VersionUpdater'
             implementationClass = 'dorkbox.version.VersionPlugin'
         }
     }
@@ -186,88 +139,4 @@ pluginBundle {
             version = project.version
         }
     }
-}
-
-
-
-
-
-
-///////////////////////////////
-//////    Maven Publishing + Release
-///////////////////////////////
-task sourceJar(type: Jar) {
-    description = "Creates a JAR that contains the source code."
-
-    from sourceSets.main.allSource
-
-    classifier = "sources"
-}
-
-task javaDocJar(type: Jar) {
-    description = "Creates a JAR that contains the javadocs."
-
-    classifier = "javadoc"
-}
-
-// for testing, we don't publish to maven central, but only to local maven
-publishing {
-    publications {
-        version(MavenPublication) {
-            from components.java
-
-            artifact(javaDocJar)
-            artifact(sourceJar)
-
-            groupId project.group
-            artifactId project.ext.id
-            version project.version
-
-            pom {
-                name = project.ext.id
-                url = project.ext.url
-                description = project.description
-
-                issueManagement {
-                    url = "${project.ext.url}/issues".toString()
-                    system = 'Gitea Issues'
-                }
-
-                organization {
-                    name = 'dorkbox, llc'
-                    url = 'https://dorkbox.com'
-                }
-
-                developers {
-                    developer {
-                        name = 'dorkbox, llc'
-                        email = 'email@dorkbox.com'
-                    }
-                }
-
-                scm {
-                    url = project.ext.url
-                    connection = "scm:${project.ext.url}.git".toString()
-                }
-            }
-        }
-    }
-}
-
-// we don't use maven with the plugin (it's uploaded separately to gradle plugins)
-tasks.withType(PublishToMavenRepository) {
-    onlyIf {
-        repository == publishing.repositories.maven &&
-        publication == publishing.publications.version
-    }
-}
-tasks.withType(PublishToMavenLocal) {
-    onlyIf {
-        publication == publishing.publications.version
-    }
-}
-
-signing {
-    required { hasProperty('sonatypeUsername') }
-    sign publishing.publications.version
 }
