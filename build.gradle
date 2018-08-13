@@ -56,13 +56,12 @@ plugins {
 apply plugin: 'com.gradle.plugin-publish'
 
 
-project.description = 'Plugin to set version information in maven POM, java or kotlin files, and git tags'
+project.description = 'Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files'
 project.group = 'com.dorkbox'
 project.version = '1.0'
 
 project.ext.name = 'Gradle Version Update and Git Tag Plugin'
 project.ext.id = 'VersionUpdate'
-project.ext.website = 'https://dorkbox.com/'
 project.ext.url = 'https://git.dorkbox.com/dorkbox/VersionUpdate'
 project.ext.tags = ['version', 'versioning', 'semver', 'semantic-versioning']
 
@@ -126,7 +125,7 @@ gradlePlugin {
 }
 
 pluginBundle {
-    website = project.ext.website
+    website = project.ext.url
     vcsUrl = project.ext.url
 
     plugins {
