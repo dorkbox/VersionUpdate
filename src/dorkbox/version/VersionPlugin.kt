@@ -61,11 +61,46 @@ class VersionPlugin : Plugin<Project> {
         private val kotlinText = """getVersion\(\) : String \{""".toRegex()
 
         private val versionText = """(return ")(.*)(")""".toRegex()
+
         // version = '1.0.0'
         // project.version = '1.0.0'
         private val buildFileVersionText = """(.*version\s*=\s*'|"\s*)(.*)('|")""".toRegex()
 
-        data class VerData(val file: File, val line: Int, val version: String, val isBuildFile: Boolean)
+
+        /*
+            Maven Info
+            ---------
+            ````
+            <dependencies>
+                ...
+                <dependency>
+                    <groupId>com.dorkbox</groupId>
+                    <artifactId>SystemTray</artifactId>
+                    <version>3.14</version>
+                </dependency>
+            </dependencies>
+            ````
+
+
+            Gradle Info
+            ---------
+            ````
+            dependencies {
+                ...
+                api 'com.dorkbox:SystemTray:3.14'
+            }
+            ````
+         */
+        private const val readmeMavenInfoText = """Maven Info"""
+        private const val readmeGradleInfoText = """Gradle Info"""
+        private const val readmeTicksText = """````"""
+        private val readmeMavenText = """(<version>)(.*)(</version>)""".toRegex()
+        private val readmeGradleText = """(api '.*:.*:)(.*)(')""".toRegex()
+
+
+
+
+        data class VerData(val file: File, val line: Int, val version: String, val lineReplacement: String)
 
         /**
          * Get's the version info from the project
@@ -96,66 +131,30 @@ class VersionPlugin : Plugin<Project> {
 
 
             // Verifies that all of the project files are set to the specified version
-            val filesWithVersionInfo = verifyVersion(project, oldVersion)
+            val filesWithVersionInfo = verifyVersion(project, oldVersion, newVersion)
 
-            // now save the NEW version to all of the files (this also has our build file)
+            // now save the NEW version to all of the files (this also has our build + README files)
             filesWithVersionInfo.forEach { data ->
                 run {
                     var lineNumber = 1  // visual editors start at 1, so we should too
                     val tempFile = createTempFile()
 
                     tempFile.printWriter().use { writer ->
-                        when {
-                            data.file.extension == "java" -> {
-                                data.file.useLines { lines ->
-                                    lines.forEach { line ->
-                                        if (lineNumber == data.line) {
-                                            writer.println(line.replace(oldVersion.toString(), newVersion.toString()))
-                                            println("Updating file '${data.file}' to version $newVersion at line $lineNumber")
-                                        }
-                                        else {
-                                            writer.println(line)
-                                        }
-                                        lineNumber++
-                                    }
+                        data.file.useLines { lines ->
+                            lines.forEach { line ->
+                                if (lineNumber == data.line) {
+                                    writer.println(data.lineReplacement)
+                                    println("Updating file '${data.file}' to version $newVersion at line $lineNumber")
                                 }
-                            }
-                            data.file.extension == "kt" -> {
-                                data.file.useLines { lines ->
-                                    lines.forEach { line ->
-                                        if (lineNumber == data.line) {
-                                            writer.println(line.replace(oldVersion.toString(), newVersion.toString()))
-                                            println("Updating file '${data.file}' to version $newVersion at line $lineNumber")
-                                        }
-                                        else {
-                                            writer.println(line)
-                                        }
-                                        lineNumber++
-                                    }
+                                else {
+                                    writer.println(line)
                                 }
-                            }
-                            data.isBuildFile -> {
-                                data.file.useLines { lines ->
-                                    lines.forEach { line ->
-                                        if (lineNumber == data.line) {
-                                            writer.println(line.replace(oldVersion.toString(), newVersion.toString()))
-                                            println("Updating file '${data.file}' to version $newVersion at line $lineNumber")
-                                        }
-                                        else {
-                                            writer.println(line)
-                                        }
-                                        lineNumber++
-                                    }
-                                }
-                            }
-                            else -> {
-                                // shouldn't get here, but just in case...
-                                throw GradleException("Cannot process unknown file type ${data.file}. Aborting")
+                                lineNumber++
                             }
                         }
                     }
 
-                    check(data.file.delete() && tempFile.renameTo(data.file)) { "Failed to replace file" }
+                    check(data.file.delete() && tempFile.renameTo(data.file)) { "Failed to replace file ${data.file}" }
                 }
             }
 
@@ -173,7 +172,17 @@ class VersionPlugin : Plugin<Project> {
 
 
             // now make sure the files were actually updated
-            val updatedFilesWithVersionInfo = VersionPlugin.verifyVersion(project, newVersion)
+            val updatedFilesWithVersionInfo = VersionPlugin.verifyVersion(project, newVersion, newVersion)
+
+            val oldFiles = filesWithVersionInfo.map { verData -> verData.file }.toMutableList()
+            val newFiles = updatedFilesWithVersionInfo.map { verData -> verData.file }
+
+            oldFiles.removeAll(newFiles)
+
+            if (oldFiles.isNotEmpty()) {
+                throw GradleException("Files $oldFiles were not successfully updated. Aborting git tag and commit")
+            }
+
 
             updatedFilesWithVersionInfo.forEach {
                 // now add the file to git
@@ -193,9 +202,9 @@ class VersionPlugin : Plugin<Project> {
         /**
          * Verifies that all of the project files are set to the specified version
          */
-        internal fun verifyVersion(project: Project, version: Version): List<VerData> {
+        private fun verifyVersion(project: Project, oldVersion: Version, newVersion: Version): List<VerData> {
             val alreadyParsedFiles = getSourceFiles(project)
-            val filesWithVersionInfo = HashMap<File, VerData>()
+            val filesWithVersionInfo = ArrayList<VerData>()
 
 
             // collect all of the class files that have a version defined (look in source sets. must match our pre-defined pattern)
@@ -214,7 +223,10 @@ class VersionPlugin : Plugin<Project> {
                                     val matchResult = versionText.find(line)
                                     if (matchResult != null) {
                                         val (_, ver, _) = matchResult.destructured
-                                        filesWithVersionInfo[file] = VerData(file, lineNumber, ver, false)
+                                        if (ver == oldVersion.toString()) {
+                                            val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
+                                            filesWithVersionInfo.add(VerData(file, lineNumber, ver, lineReplacement))
+                                        }
                                         return@fileCheck
                                     }
                                 }
@@ -232,7 +244,10 @@ class VersionPlugin : Plugin<Project> {
                                     val matchResult = versionText.find(line)
                                     if (matchResult != null) {
                                         val (_, ver, _) = matchResult.destructured
-                                        filesWithVersionInfo[file] = VerData(file, lineNumber, ver, false)
+                                        if (ver == oldVersion.toString()) {
+                                            val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
+                                            filesWithVersionInfo.add(VerData(file, lineNumber, ver, lineReplacement))
+                                        }
                                         return@fileCheck
                                     }
                                 }
@@ -253,8 +268,9 @@ class VersionPlugin : Plugin<Project> {
                         if (matchResult != null) {
                             val (_, ver, _) = matchResult.destructured
                             // verify it's what we think it is
-                            if (ver == version.toString()) {
-                                filesWithVersionInfo[project.buildFile] = VerData(project.buildFile, lineNumber, ver, true)
+                            if (ver == oldVersion.toString()) {
+                                val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
+                                filesWithVersionInfo.add(VerData(project.buildFile, lineNumber, ver, lineReplacement))
                                 return@useLines
                             }
                         }
@@ -263,15 +279,90 @@ class VersionPlugin : Plugin<Project> {
                 }
             }
 
-            // make sure version info all match (throw error and exit if they do not)
-            filesWithVersionInfo.forEach { f, v ->
-                // println("Verifying file '$f' for version '${v.version} at line ${v.line}'")
-                if (Version.from(v.version) != version) {
-                    throw GradleException("Version information mismatch, expected $version, got ${v.version} in file: $f at line ${v.line}")
+            // get version info by parsing the README.MD file, if it exists (OPTIONAL)
+            // this file will always exist next to the build file. We should ignore case (because yay windows!)
+            var readmeFile: File? = null
+            project.buildFile.parentFile.listFiles().forEach {
+                if (it.name.toLowerCase() == "readme.md") {
+                    readmeFile = it
+                    return@forEach
                 }
             }
 
-            return filesWithVersionInfo.values.toList()
+            // it won't always exist, but if it does, process it as well
+            // TWO version entries possible. One for MAVEN and one for GRADLE
+            if (readmeFile != null && readmeFile!!.canRead()) {
+                val readme = readmeFile!!
+
+                readme.useLines { lines ->
+                    var lineNumber = 1  // visual editors start at 1, so we should too
+
+                    var foundMaven = false
+                    var foundGradle = false
+
+                    var readyMaven = false
+                    var readyGradle = false
+
+                    // file has MAVEN info first, followed by GRADLE info
+                    lines.forEach { line ->
+                        when {
+                            !foundMaven && line.trim() == readmeMavenInfoText -> foundMaven = true
+                            !foundGradle && line.trim() == readmeGradleInfoText -> foundGradle = true
+                            foundMaven && line.trim() == readmeTicksText -> readyMaven = true
+                            foundGradle && line.trim() == readmeTicksText -> readyGradle = true
+                            readyGradle && line.trim() == readmeTicksText -> foundMaven = false
+                            readyGradle && line.trim() == readmeTicksText -> foundGradle = false
+
+                            // block that maven stuff is in
+                            foundMaven && readyMaven -> {
+                                val matchResult = readmeMavenText.find(line)
+                                if (matchResult != null) {
+                                    val (_, ver, _) = matchResult.destructured
+                                    // verify it's what we think it is
+                                    if (ver == oldVersion.toString()) {
+                                        val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
+                                        filesWithVersionInfo.add(VerData(readme, lineNumber, ver, lineReplacement))
+                                        foundMaven = false
+                                        readyMaven = false
+                                        println("FOUND MAVEN INFO $ver")
+                                        // return@useLines // keep going, since we have to look for gradle info too
+                                    }
+                                }
+                            }
+
+                            // block that gradle stuff is in
+                            foundGradle && readyGradle -> {
+                                val matchResult = readmeGradleText.find(line)
+                                if (matchResult != null) {
+                                    val (_, ver, _) = matchResult.destructured
+                                    // verify it's what we think it is
+                                    if (ver == oldVersion.toString()) {
+                                        val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
+                                        filesWithVersionInfo.add(VerData(readme, lineNumber, ver, lineReplacement))
+                                        foundGradle = false
+                                        readyGradle = false
+                                        println("FOUND GRADLE INFO $ver")
+                                        return@useLines
+                                    }
+                                }
+                            }
+                        }
+
+                        lineNumber++
+                    }
+                }
+            }
+
+
+            // make sure version info all match (throw error and exit if they do not)
+            filesWithVersionInfo.forEach { v ->
+                // println("Verifying file '$f' for version '${v.version} at line ${v.line}'")
+                if (Version.from(v.version) != oldVersion) {
+                    throw GradleException("Version information mismatch, expected $oldVersion, got ${v.version} in file: ${v.file} at line ${v.line}")
+                }
+            }
+
+            return filesWithVersionInfo.toList()
         }
 
         private fun getSourceFiles(project: Project): HashSet<File> {
@@ -289,7 +380,7 @@ class VersionPlugin : Plugin<Project> {
             return alreadyParsedFiles
         }
 
-        internal fun getGit(project: Project): Git {
+        private fun getGit(project: Project): Git {
             try {
                 val gitDir = getRootGitDir(project.projectDir)
                 return Git.wrap(FileRepository(gitDir))
