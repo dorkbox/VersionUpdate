@@ -68,7 +68,6 @@ project.ext.tags = ['version', 'versioning', 'semver', 'semantic-versioning']
 
 licensing {
     license(License.APACHE_2) {
-        copyright 2012
         author 'dorkbox, llc'
         url project.ext.url
         note 'Plugin to set version information in maven POM, java or kotlin files, and git tags'
