@@ -58,7 +58,7 @@ apply plugin: 'com.gradle.plugin-publish'
 
 project.description = 'Plugin to set version information in maven POM, java or kotlin files, and git tags'
 project.group = 'com.dorkbox'
-project.version = '1.0.0'
+project.version = '1.0'
 
 project.ext.name = 'Gradle Version Update and Git Tag Plugin'
 project.ext.id = 'VersionUpdate'
