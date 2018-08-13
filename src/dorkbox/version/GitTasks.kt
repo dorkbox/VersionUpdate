@@ -104,7 +104,7 @@ GitTasks {
                 }
             }
 
-            // create a git tag on the current HEAD
+            // create a git tag on the current HEAD. Throws an error if it fails
             val tag = git.tag().setName(tagName).call()
             println("Successfully created tag $tagName")
         }

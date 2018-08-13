@@ -23,7 +23,6 @@ import org.gradle.api.plugins.JavaPluginConvention
 import java.io.File
 
 
-
 /**
  * For automatically setting version information based on a MAJOR, MINOR, or PATCH update based on a build definition file
  */
@@ -66,11 +65,7 @@ class VersionPlugin : Plugin<Project> {
         // project.version = '1.0.0'
         private val buildFileVersionText = """(.*version\s*=\s*'|"\s*)(.*)('|")""".toRegex()
 
-//            val readmeOrigText = "return \"" + original.toString() + "\";"
-//            val readmeNewText = "return \"" + toString() + "\";"
-
         data class VerData(val file: File, val line: Int, val version: String, val isBuildFile: Boolean)
-
 
         /**
          * Get's the version info from the project
