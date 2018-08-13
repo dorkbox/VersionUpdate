@@ -60,11 +60,11 @@ project.description = 'Plugin to set version information in maven POM, java or k
 project.group = 'com.dorkbox'
 project.version = '1.0.0'
 
-project.ext.name = 'Gradle Version Update Plugin'
-project.ext.id = 'VersionUpdater'
+project.ext.name = 'Gradle Version Update and Git Tag Plugin'
+project.ext.id = 'VersionUpdate'
 project.ext.website = 'https://dorkbox.com/'
-project.ext.url = 'https://git.dorkbox.com/dorkbox/Version'
-project.ext.tags = ['version', 'versioning']
+project.ext.url = 'https://git.dorkbox.com/dorkbox/VersionUpdate'
+project.ext.tags = ['version', 'versioning', 'semver', 'semantic-versioning']
 
 licensing {
     license(License.APACHE_2) {
