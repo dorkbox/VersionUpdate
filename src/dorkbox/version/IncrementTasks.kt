@@ -31,7 +31,7 @@ IncrementTasks {
             println("Incrementing Major version from $version -> $incrementMajorVersion")
 
             // update the all java files and build file with the new version number
-            VersionPlugin.saveVersionInFiles(project, version, incrementMajorVersion)
+            VersionPlugin.saveVersionInFilesAndCreateTag(project, version, incrementMajorVersion)
         }
     }
 
@@ -46,7 +46,7 @@ IncrementTasks {
             println("Incrementing Minor version from $version -> $incrementMinorVersion")
 
             // update the all java files and build file with the new version number
-            VersionPlugin.saveVersionInFiles(project, version, incrementMinorVersion)
+            VersionPlugin.saveVersionInFilesAndCreateTag(project, version, incrementMinorVersion)
         }
     }
 
@@ -61,7 +61,7 @@ IncrementTasks {
             println("Incrementing Patch version from $version -> $incrementPatchVersion")
 
             // update the all java files and build file with the new version number
-            VersionPlugin.saveVersionInFiles(project, version, incrementPatchVersion)
+            VersionPlugin.saveVersionInFilesAndCreateTag(project, version, incrementPatchVersion)
         }
     }
 }

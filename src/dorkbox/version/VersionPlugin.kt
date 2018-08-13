@@ -16,11 +16,14 @@
 package dorkbox.version
 
 import com.dorkbox.version.Version
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.internal.storage.file.FileRepository
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
 import java.io.File
+import java.io.IOException
 
 
 /**
@@ -36,9 +39,6 @@ class VersionPlugin : Plugin<Project> {
             group = "version"
         }
         project.tasks.create("incrementPatch", IncrementTasks.Patch::class.java).apply {
-            group = "version"
-        }
-        project.tasks.create("createGitTag", GitTasks.CreateTag::class.java).apply {
             group = "version"
         }
 
@@ -83,7 +83,18 @@ class VersionPlugin : Plugin<Project> {
         }
 
 
-        fun saveVersionInFiles(project: Project, oldVersion: Version, newVersion: Version) {
+        fun saveVersionInFilesAndCreateTag(project: Project, oldVersion: Version, newVersion: Version) {
+            // make sure all code is committed (no un-committed files and no staged files). Throw error and exit if there is
+            val git = getGit(project)
+            val status = git.status().call()
+
+            if (status.hasUncommittedChanges()) {
+                println("Please commit or stash the following files: ${status.uncommittedChanges}")
+                throw GradleException("Cannot continue when files have not been committed")
+            }
+
+
+
             // Verifies that all of the project files are set to the specified version
             val filesWithVersionInfo = verifyVersion(project, oldVersion)
 
@@ -147,6 +158,36 @@ class VersionPlugin : Plugin<Project> {
                     check(data.file.delete() && tempFile.renameTo(data.file)) { "Failed to replace file" }
                 }
             }
+
+            // make sure there are no git tags with the current tag name
+
+            val tagName = "Version_$newVersion"
+
+            // do we already have this tag?
+            val call = git.tagList().call()
+            for (ref in call) {
+                if (ref.name == tagName) {
+                    throw GradleException("Tag $tagName already exists. Please delete the old tag in order to continue.")
+                }
+            }
+
+
+            // now make sure the files were actually updated
+            val updatedFilesWithVersionInfo = VersionPlugin.verifyVersion(project, newVersion)
+
+            updatedFilesWithVersionInfo.forEach {
+                // now add the file to git
+                git.add().addFilepattern(it.file.absolutePath).call()
+            }
+
+            // now commit these updated files
+            git.commit().setMessage("Updated version from $oldVersion to $newVersion").call()
+
+
+            // now create the git tag
+            git.tag().setName(tagName).call()
+
+            println("Successfully updated version information and created git tag $tagName" )
         }
 
         /**
@@ -246,6 +287,37 @@ class VersionPlugin : Plugin<Project> {
             }
 
             return alreadyParsedFiles
+        }
+
+        internal fun getGit(project: Project): Git {
+            try {
+                val gitDir = getRootGitDir(project.projectDir)
+                return Git.wrap(FileRepository(gitDir))
+            } catch (e: IOException) {
+                throw RuntimeException(e)
+            }
+        }
+
+        private fun getRootGitDir(currentRoot: File): File {
+            val gitDir = scanForRootGitDir(currentRoot)
+            if (!gitDir.exists()) {
+                throw IllegalArgumentException("Cannot find '.git' directory")
+            }
+            return gitDir
+        }
+
+        private fun scanForRootGitDir(currentRoot: File): File {
+            val gitDir = File(currentRoot, ".git")
+
+            if (gitDir.exists()) {
+                return gitDir
+            }
+
+            // always stop at the root directory
+            return if (currentRoot.parentFile == null) {
+                gitDir
+            }
+            else scanForRootGitDir(currentRoot.parentFile)
         }
     }
 }
