@@ -87,7 +87,7 @@ class VersionPlugin : Plugin<Project> {
             ````
             dependencies {
                 ...
-                api 'com.dorkbox:SystemTray:3.14'
+                compile 'com.dorkbox:SystemTray:3.14'
             }
             ````
          */
@@ -95,7 +95,7 @@ class VersionPlugin : Plugin<Project> {
         private const val readmeGradleInfoText = """Gradle Info"""
         private const val readmeTicksText = """````"""
         private val readmeMavenText = """(<version>)(.*)(</version>)""".toRegex()
-        private val readmeGradleText = """(api '.*:.*:)(.*)(')""".toRegex()
+        private val readmeGradleText = """('.*:.*:)(.*)(')""".toRegex() // note: this can be the ONLY version info present, otherwise there will be problems!
 
 
 
@@ -324,7 +324,7 @@ class VersionPlugin : Plugin<Project> {
                                         filesWithVersionInfo.add(VerData(readme, lineNumber, ver, lineReplacement))
                                         foundMaven = false
                                         readyMaven = false
-                                        println("FOUND MAVEN INFO $ver")
+                                        // println("FOUND MAVEN INFO $ver")
                                         // return@useLines // keep going, since we have to look for gradle info too
                                     }
                                 }
@@ -341,7 +341,7 @@ class VersionPlugin : Plugin<Project> {
                                         filesWithVersionInfo.add(VerData(readme, lineNumber, ver, lineReplacement))
                                         foundGradle = false
                                         readyGradle = false
-                                        println("FOUND GRADLE INFO $ver")
+                                        // println("FOUND GRADLE INFO $ver")
                                         return@useLines
                                     }
                                 }
