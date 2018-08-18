@@ -20,6 +20,15 @@ import org.gradle.api.tasks.TaskAction
 
 class
 IncrementTasks {
+    open class Get : DefaultTask() {
+        @TaskAction
+        fun run() {
+            val version = VersionPlugin.getVersion(project)
+
+            println("Detected version is $version")
+        }
+    }
+
     open class Major : DefaultTask() {
         @TaskAction
         fun run() {

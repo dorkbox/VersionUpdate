@@ -33,6 +33,9 @@ import java.util.*
 class VersionPlugin : Plugin<Project> {
     override fun apply(project: Project) {
 
+        project.tasks.create("get", IncrementTasks.Get::class.java).apply {
+            group = "version"
+        }
         project.tasks.create("incrementMajor", IncrementTasks.Major::class.java).apply {
             group = "version"
         }
