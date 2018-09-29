@@ -28,9 +28,7 @@ buildscript {
     }
 
     repositories {
-        maven {
-            url 'https://plugins.gradle.org/m2/'
-        }
+        maven { url 'https://plugins.gradle.org/m2/' }
     }
     dependencies {
         // for plugin publishing
@@ -48,19 +46,18 @@ plugins {
     id 'maven-publish'
     id 'signing'
 
-    id 'com.dorkbox.Licensing' version '1.1.0'
     id 'org.jetbrains.kotlin.jvm' version '1.2.60'
 }
 
 // for publishing the plugin to gradle
 apply plugin: 'com.gradle.plugin-publish'
-
+apply plugin: 'com.dorkbox.Licensing'
 
 project.description = 'Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files'
 project.group = 'com.dorkbox'
 project.version = '1.2'
 
-project.ext.name = 'Gradle Version Update and Git Tag Plugin'
+project.ext.name = 'Version Update'
 project.ext.id = 'VersionUpdate'
 project.ext.url = 'https://git.dorkbox.com/dorkbox/VersionUpdate'
 project.ext.tags = ['version', 'versioning', 'semver', 'semantic-versioning']
