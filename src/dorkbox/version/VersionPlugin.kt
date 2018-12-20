@@ -188,9 +188,13 @@ class VersionPlugin : Plugin<Project> {
             }
 
 
-            updatedFilesWithVersionInfo.forEach {
-                // now add the file to git
-                git.add().addFilepattern(it.file.absolutePath).call()
+            // must include the separator.
+            val projectPath = project.buildFile.parentFile.normalize().absolutePath + File.separator
+
+            newFiles.forEach {
+                // now add the file to git. MUST BE repository-relative path!
+                val filePath = it.normalize().absolutePath.replace(projectPath, "")
+                git.add().addFilepattern(filePath).call()
             }
 
             // now commit these updated files
