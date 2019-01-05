@@ -55,6 +55,8 @@ object Extras {
     const val url = "https://git.dorkbox.com/dorkbox/VersionUpdate"
     val tags = listOf("version", "versioning", "semver", "semantic-versioning")
     val buildDate = Instant.now().toString()
+
+    val JAVA_VERSION = JavaVersion.VERSION_1_8.toString()
 }
 // assign everything to project or project.ext
 Extras::class.declaredMemberProperties.forEach {
@@ -112,12 +114,12 @@ tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.isIncremental = true
 
-    sourceCompatibility = JavaVersion.VERSION_1_8.toString()
-    targetCompatibility = JavaVersion.VERSION_1_8.toString()
+    sourceCompatibility = Extras.JAVA_VERSION
+    targetCompatibility = Extras.JAVA_VERSION
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8.toString()
+    kotlinOptions.jvmTarget = Extras.JAVA_VERSION
 }
 
 
