@@ -78,14 +78,14 @@ licensing {
         author("dorkbox, llc")
         url(Extras.url)
         note("Plugin to set version information in maven POM, java or kotlin files, and git tags")
-        note("""Git tag code based upon 'gradle-git-version', Copyright 2015, Palantir Technologies. https://github.com/palantir/gradle-git-version""")
+        note("Git tag code based upon 'gradle-git-version', Copyright 2015, Palantir Technologies. https://github.com/palantir/gradle-git-version")
     }
 }
 
 sourceSets {
     main {
         java {
-            setSrcDirs(files("src"))
+            setSrcDirs(listOf("src"))
 
             // want to include kotlin files for the source. 'setSrcDirs' resets includes...
             include("**/*.kt")
