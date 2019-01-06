@@ -75,7 +75,7 @@ version = Extras.version
 
 licensing {
     license(License.APACHE_2) {
-        author("dorkbox, llc")
+        author(Extras.vendor)
         url(Extras.url)
         note(Extras.description)
         note("Git tag code based upon 'gradle-git-version', Copyright 2015, Palantir Technologies. https://github.com/palantir/gradle-git-version")
