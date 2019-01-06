@@ -1,6 +1,6 @@
  - VersionUpdate - 
    https://git.dorkbox.com/dorkbox/VersionUpdate
-   Copyright 2018 - The Apache Software License, Version 2.0
+   Copyright 2019 - The Apache Software License, Version 2.0
      dorkbox, llc
-   Plugin to set version information in maven POM, java or kotlin files, and git tags
+   Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files
    Git tag code based upon 'gradle-git-version', Copyright 2015, Palantir Technologies. https://github.com/palantir/gradle-git-version

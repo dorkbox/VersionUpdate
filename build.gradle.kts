@@ -77,7 +77,7 @@ licensing {
     license(License.APACHE_2) {
         author("dorkbox, llc")
         url(Extras.url)
-        note("Plugin to set version information in maven POM, java or kotlin files, and git tags")
+        note(Extras.description)
         note("Git tag code based upon 'gradle-git-version', Copyright 2015, Palantir Technologies. https://github.com/palantir/gradle-git-version")
     }
 }
