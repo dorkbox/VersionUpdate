@@ -141,7 +141,7 @@ tasks.withType<Jar> {
 }
 
 val wrapperUpdate by tasks.creating(Wrapper::class) {
-    gradleVersion = "5.0"
+    gradleVersion = "5.1"
     distributionUrl = distributionUrl.replace("bin", "all")
 }
 
