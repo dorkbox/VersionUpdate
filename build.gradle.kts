@@ -140,11 +140,6 @@ tasks.withType<Jar> {
     }
 }
 
-val wrapperUpdate by tasks.creating(Wrapper::class) {
-    gradleVersion = "5.1"
-    distributionUrl = distributionUrl.replace("bin", "all")
-}
-
 /////////////////////////////////
 ////////    Plugin Publishing + Release
 /////////////////////////////////
@@ -170,4 +165,13 @@ pluginBundle {
             version = Extras.version
         }
     }
+}
+
+///////////////////////////////
+//////    Gradle Wrapper Configuration.
+/////  Run this task, then refresh the gradle project
+///////////////////////////////
+val wrapperUpdate by tasks.creating(Wrapper::class) {
+    gradleVersion = "5.1.1"
+    distributionUrl = distributionUrl.replace("bin", "all")
 }
