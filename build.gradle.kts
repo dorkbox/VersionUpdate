@@ -46,7 +46,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "1.4"
+    const val version = "1.4.1"
 
     // set as project.ext
     const val name = "Version Update"
