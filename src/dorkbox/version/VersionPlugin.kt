@@ -18,10 +18,12 @@ package dorkbox.version
 import com.dorkbox.version.Version
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.internal.storage.file.FileRepository
+import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -33,7 +35,7 @@ import java.util.*
 class VersionPlugin : Plugin<Project> {
     override fun apply(project: Project) {
 
-        project.tasks.create("get", IncrementTasks.Get::class.java).apply {
+        project.tasks.create("get", Get::class.java).apply {
             group = "version"
         }
         project.tasks.create("incrementMajor", IncrementTasks.Major::class.java).apply {
@@ -417,6 +419,19 @@ class VersionPlugin : Plugin<Project> {
                 gitDir
             }
             else scanForRootGitDir(currentRoot.parentFile)
+        }
+    }
+
+    open class Get : DefaultTask() {
+        override fun getDescription(): String {
+            return "Outputs the detected version to the console"
+        }
+
+        @TaskAction
+        fun run() {
+            val version = VersionPlugin.getVersion(project)
+
+            println("Detected version is $version")
         }
     }
 }

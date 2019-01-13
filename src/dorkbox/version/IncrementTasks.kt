@@ -20,19 +20,6 @@ import org.gradle.api.tasks.TaskAction
 
 class
 IncrementTasks {
-    open class Get : DefaultTask() {
-        override fun getDescription(): String {
-            return "Outputs the detected version to the console"
-        }
-
-        @TaskAction
-        fun run() {
-            val version = VersionPlugin.getVersion(project)
-
-            println("Detected version is $version")
-        }
-    }
-
     open class Major : DefaultTask() {
         override fun getDescription(): String {
             return "Increments the MAJOR version by 1, and resets MINOR/PATCH to 0"
