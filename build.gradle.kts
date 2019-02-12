@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import java.nio.file.Paths
 import java.time.Instant
-import java.util.Properties
+import java.util.*
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.declaredMemberProperties
 
 println("Gradle ${project.gradle.gradleVersion}")
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath("com.hierynomus:sshj:0.27.0")
+    }
+}
 
 plugins {
     java
@@ -130,10 +138,11 @@ tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = Extras.JAVA_VERSION
 }
 
-
 tasks.withType<Jar> {
     duplicatesStrategy = DuplicatesStrategy.FAIL
+}
 
+tasks.jar.get().apply {
     manifest {
         // https://docs.oracle.com/javase/tutorial/deployment/jar/packageman.html
         attributes["Name"] = Extras.name
@@ -147,6 +156,7 @@ tasks.withType<Jar> {
         attributes["Implementation-Vendor"] = Extras.vendor
     }
 }
+
 
 /////////////////////////////////
 ////////    Plugin Publishing + Release
