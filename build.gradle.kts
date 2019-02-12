@@ -17,7 +17,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.nio.file.Paths
 import java.time.Instant
 import java.util.Properties
+import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.declaredMemberProperties
+
+println("Gradle ${project.gradle.gradleVersion}")
 
 plugins {
     java
@@ -27,19 +30,6 @@ plugins {
     id("com.dorkbox.Licensing") version "1.4"
 
     kotlin("jvm") version "1.3.11"
-}
-
-
-println("Gradle ${project.gradle.gradleVersion}")
-
-// load properties from custom location
-val propsFile = File("$projectDir/../../gradle.properties").normalize()
-if (propsFile.canRead()) {
-    println("Loading custom property data from: $propsFile")
-
-    val props = Properties()
-    props.load(propsFile.inputStream())
-    props.forEach{(k, v) -> project.extra.set(k as String, v as String)}
 }
 
 object Extras {
@@ -58,19 +48,37 @@ object Extras {
 
     val JAVA_VERSION = JavaVersion.VERSION_1_8.toString()
 }
-// assign everything to project or project.ext
-Extras::class.declaredMemberProperties.forEach {
-    if (!project.hasProperty(it.name)) {
-        when {
-            it.isConst -> project.extra.set(it.name, it.getter.call())
-            else -> project.extra.set(it.name, it.getter.call(Extras::class.objectInstance))
-        }
-    }
-}
 
+///////////////////////////////
+/////  assign 'Extras'
+///////////////////////////////
 description = Extras.description
 group = Extras.group
 version = Extras.version
+
+val propsFile = File("$projectDir/../../gradle.properties").normalize()
+if (propsFile.canRead()) {
+    println("\tLoading custom property data from: [$propsFile]")
+
+    val props = Properties()
+    propsFile.inputStream().use {
+        props.load(it)
+    }
+
+    val extraProperties = Extras::class.declaredMemberProperties.filterIsInstance<KMutableProperty<String>>()
+    props.forEach { (k, v) -> run {
+        val key = k as String
+        val value = v as String
+
+        val member = extraProperties.find { it.name == key }
+        if (member != null) {
+            member.setter.call(Extras::class.objectInstance, value)
+        }
+        else {
+            project.extra.set(k, v)
+        }
+    }}
+}
 
 
 licensing {
