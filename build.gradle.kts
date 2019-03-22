@@ -34,10 +34,10 @@ plugins {
     java
     `java-gradle-plugin`
 
-    id("com.gradle.plugin-publish") version "0.10.0"
+    id("com.gradle.plugin-publish") version "0.10.1"
     id("com.dorkbox.Licensing") version "1.4"
 
-    kotlin("jvm") version "1.3.11"
+    kotlin("jvm") version "1.3.21"
 }
 
 object Extras {
@@ -189,7 +189,8 @@ pluginBundle {
 //////    Gradle Wrapper Configuration.
 /////  Run this task, then refresh the gradle project
 ///////////////////////////////
-val wrapperUpdate by tasks.creating(Wrapper::class) {
-    gradleVersion = "5.1.1"
+task<Wrapper>("wrapperUpdate") {
+    gradleVersion = "5.3"
     distributionUrl = distributionUrl.replace("bin", "all")
 }
+
