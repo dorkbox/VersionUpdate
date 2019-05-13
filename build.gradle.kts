@@ -21,21 +21,13 @@ import kotlin.reflect.full.declaredMemberProperties
 
 println("Gradle ${project.gradle.gradleVersion}")
 
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath("com.hierynomus:sshj:0.27.0")
-    }
-}
-
 plugins {
     java
     `java-gradle-plugin`
 
     id("com.gradle.plugin-publish") version "0.10.1"
     id("com.dorkbox.Licensing") version "1.4"
+    id("com.dorkbox.GradleUtils") version "1.0"
 
     kotlin("jvm") version "1.3.21"
 }
@@ -184,13 +176,3 @@ pluginBundle {
         }
     }
 }
-
-///////////////////////////////
-//////    Gradle Wrapper Configuration.
-/////  Run this task, then refresh the gradle project
-///////////////////////////////
-task<Wrapper>("wrapperUpdate") {
-    gradleVersion = "5.3"
-    distributionUrl = distributionUrl.replace("bin", "all")
-}
-
