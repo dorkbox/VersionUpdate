@@ -15,9 +15,6 @@
  */
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.time.Instant
-import java.util.*
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.full.declaredMemberProperties
 
 println("Gradle ${project.gradle.gradleVersion}")
 
@@ -27,7 +24,7 @@ plugins {
 
     id("com.gradle.plugin-publish") version "0.10.1"
     id("com.dorkbox.Licensing") version "1.4"
-    id("com.dorkbox.GradleUtils") version "1.0"
+    id("com.dorkbox.GradleUtils") version "1.2"
 
     kotlin("jvm") version "1.3.21"
 }
@@ -36,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "1.4.1"
+    const val version = "1.5"
 
     // set as project.ext
     const val name = "Version Update"
@@ -52,33 +49,10 @@ object Extras {
 ///////////////////////////////
 /////  assign 'Extras'
 ///////////////////////////////
+GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 description = Extras.description
 group = Extras.group
 version = Extras.version
-
-val propsFile = File("$projectDir/../../gradle.properties").normalize()
-if (propsFile.canRead()) {
-    println("\tLoading custom property data from: [$propsFile]")
-
-    val props = Properties()
-    propsFile.inputStream().use {
-        props.load(it)
-    }
-
-    val extraProperties = Extras::class.declaredMemberProperties.filterIsInstance<KMutableProperty<String>>()
-    props.forEach { (k, v) -> run {
-        val key = k as String
-        val value = v as String
-
-        val member = extraProperties.find { it.name == key }
-        if (member != null) {
-            member.setter.call(Extras::class.objectInstance, value)
-        }
-        else {
-            project.extra.set(k, v)
-        }
-    }}
-}
 
 
 licensing {
