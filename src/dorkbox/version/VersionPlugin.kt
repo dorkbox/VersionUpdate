@@ -432,6 +432,18 @@ class VersionPlugin : Plugin<Project> {
             val version = VersionPlugin.getVersion(project)
 
             println("Detected version is $version")
+
+            // Verifies that all of the project files are set to the specified version
+            val filesWithVersionInfo = verifyVersion(project, version, version)
+
+            if (filesWithVersionInfo.isNotEmpty()) {
+                println("Detected files with version are:")
+
+                // list all the files that have detected version information in them
+                filesWithVersionInfo.forEach { data ->
+                    println("\t${data.file}")
+                }
+            }
         }
     }
 }
