@@ -22,9 +22,10 @@ plugins {
     java
     `java-gradle-plugin`
 
-    id("com.gradle.plugin-publish") version "0.10.1"
+    id("com.gradle.plugin-publish") version "0.11.0"
+
     id("com.dorkbox.Licensing") version "1.4"
-    id("com.dorkbox.GradleUtils") version "1.2"
+    id("com.dorkbox.GradleUtils") version "1.2.7"
 
     kotlin("jvm") version "1.3.21"
 }
@@ -33,7 +34,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "1.6"
+    const val version = "1.7"
 
     // set as project.ext
     const val name = "Version Update"
@@ -82,9 +83,9 @@ repositories {
 
 dependencies {
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
-    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin")
-    compileOnly("org.jetbrains.kotlin:kotlin-reflect")
-    compile ("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation ("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     implementation ("org.eclipse.jgit:org.eclipse.jgit:4.5.4+")
     implementation ("com.dorkbox:Version:1.0")
