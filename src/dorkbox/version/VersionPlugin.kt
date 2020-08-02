@@ -183,27 +183,25 @@ class VersionPlugin : Plugin<Project> {
 
             // now save the NEW version to all of the files (this also has our build + README files)
             filesWithVersionInfo.forEach { data ->
-                run {
-                    var lineNumber = 1  // visual editors start at 1, so we should too
-                    val tempFile = createTempFile()
+                var lineNumber = 1  // visual editors start at 1, so we should too
+                val tempFile = createTempFile()
 
-                    tempFile.printWriter().use { writer ->
-                        data.file.useLines { lines ->
-                            lines.forEach { line ->
-                                if (lineNumber == data.line) {
-                                    writer.println(data.lineReplacement)
-                                    println("Updating file '${data.file}' to version $newVersion at line $lineNumber")
-                                }
-                                else {
-                                    writer.println(line)
-                                }
-                                lineNumber++
+                tempFile.printWriter().use { writer ->
+                    data.file.useLines { lines ->
+                        lines.forEach { line ->
+                            if (lineNumber == data.line) {
+                                writer.println(data.lineReplacement)
+                                println("Updating file '${data.file}' to version $newVersion at line $lineNumber")
                             }
+                            else {
+                                writer.println(line)
+                            }
+                            lineNumber++
                         }
                     }
-
-                    check(data.file.delete() && tempFile.renameTo(data.file)) { "Failed to replace file ${data.file}" }
                 }
+
+                check(data.file.delete() && tempFile.renameTo(data.file)) { "Failed to replace file ${data.file}" }
             }
 
             // make sure there are no git tags with the current tag name
