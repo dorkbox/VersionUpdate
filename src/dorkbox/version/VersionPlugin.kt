@@ -24,6 +24,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.TaskAction
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -62,15 +63,31 @@ class VersionPlugin : Plugin<Project> {
 
 
     companion object {
-        private val buildText = """version""".toRegex()
-        private val javaText = """String getVersion\(\) \{""".toRegex()
-        private val kotlinText = """getVersion\(\) : String \{""".toRegex()
+        // NOTE: These ignore spaces!
 
+        // version
+        private val buildText = """version""".toRegex()
+
+        // String getVersion() {
+        private val javaText = """String getVersion\(\)\s*\{""".toRegex()
+
+        // fun getVersion() : String {
+        private val kotlinText = """fun getVersion\(\)\s*:\s*String\s*\{""".toRegex()
+
+        // const val version =
+        private val kotlinText2 = """const val version\s*=""".toRegex()
+        private val kotlinText2VersionText = """(version\s*=\s*")(.*)(")""".toRegex()
+
+        // return "...."
         private val versionText = """(return ")(.*)(")""".toRegex()
+
 
         // version = '1.0.0'
         // project.version = '1.0.0'
-        private val buildFileVersionText = """(.*version\s*=\s*'|"\s*)(.*)('|")""".toRegex()
+        // version = "1.0.0"
+        // project.version = "1.0.0"
+        private val buildFileVersionText = """(.*version\s*=\s*'|"\s*)(.*)('|"')""".toRegex()
+
 
 
         /*
@@ -100,10 +117,35 @@ class VersionPlugin : Plugin<Project> {
         private const val readmeMavenInfoText = """Maven Info"""
         private const val readmeGradleInfoText = """Gradle Info"""
         private const val readmeTicksText = """````"""
+
+        /*
+            Maven Info
+            ---------
+            ````
+            <dependencies>
+                ...
+                <dependency>
+                    <groupId>com.dorkbox</groupId>
+                    <artifactId>SystemTray</artifactId>
+                    <version>3.14</version>
+                </dependency>
+            </dependencies>
+            ````
+         */
         private val readmeMavenText = """(<version>)(.*)(</version>)""".toRegex()
-        private val readmeGradleText = """('.*:.*:)(.*)(')""".toRegex() // note: this can be the ONLY version info present, otherwise there will be problems!
 
-
+        /*
+            Gradle Info
+            ---------
+            ````
+            dependencies {
+                ...
+                compile 'com.dorkbox:SystemTray:3.14'
+            }
+            ````
+         */
+        // note: this can be the ONLY version info present, otherwise there will be problems!
+        private val readmeGradleText = """('|".*:.*:)(.*)('|")""".toRegex()
 
 
         data class VerData(val file: File, val line: Int, val version: String, val lineReplacement: String)
@@ -178,7 +220,7 @@ class VersionPlugin : Plugin<Project> {
 
 
             // now make sure the files were actually updated
-            val updatedFilesWithVersionInfo = VersionPlugin.verifyVersion(project, newVersion, newVersion)
+            val updatedFilesWithVersionInfo = verifyVersion(project, newVersion, newVersion)
 
             val oldFiles = filesWithVersionInfo.map { verData -> verData.file }.toMutableList()
             val newFiles = updatedFilesWithVersionInfo.map { verData -> verData.file }
@@ -212,6 +254,7 @@ class VersionPlugin : Plugin<Project> {
         /**
          * Verifies that all of the project files are set to the specified version
          */
+        @Suppress("DuplicatedCode")
         private fun verifyVersion(project: Project, oldVersion: Version, newVersion: Version): List<VerData> {
             val alreadyParsedFiles = getSourceFiles(project)
             val filesWithVersionInfo = ArrayList<VerData>()
@@ -227,6 +270,7 @@ class VersionPlugin : Plugin<Project> {
                         file.useLines { lines ->
                             lines.forEach { line ->
                                 if (line.contains(javaText)) {
+                                    // this is so the text is matched on the following line
                                     matchesText = true
                                 }
                                 else if (matchesText) {
@@ -248,9 +292,20 @@ class VersionPlugin : Plugin<Project> {
                         file.useLines { lines ->
                             lines.forEach { line ->
                                 if (line.contains(kotlinText)) {
+                                    // this is so the text is matched on the following line
                                     matchesText = true
-                                }
-                                else if (matchesText) {
+                                } else if (line.contains(kotlinText2)) {
+                                    // same line
+                                    val matchResult = kotlinText2VersionText.find(line)
+                                    if (matchResult != null) {
+                                        val (_, ver, _) = matchResult.destructured
+                                        if (ver == oldVersion.toString()) {
+                                            val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
+                                            filesWithVersionInfo.add(VerData(file, lineNumber, ver, lineReplacement))
+                                        }
+                                        return@fileCheck
+                                    }
+                                } else if (matchesText) {
                                     val matchResult = versionText.find(line)
                                     if (matchResult != null) {
                                         val (_, ver, _) = matchResult.destructured
@@ -292,7 +347,7 @@ class VersionPlugin : Plugin<Project> {
             // get version info by parsing the README.MD file, if it exists (OPTIONAL)
             // this file will always exist next to the build file. We should ignore case (because yay windows!)
             var readmeFile: File? = null
-            project.buildFile.parentFile.listFiles().forEach {
+            project.buildFile.parentFile.listFiles()?.forEach {
                 if (it.name.toLowerCase() == "readme.md") {
                     readmeFile = it
                     return@forEach
@@ -302,6 +357,7 @@ class VersionPlugin : Plugin<Project> {
             // it won't always exist, but if it does, process it as well
             // TWO version entries possible. One for MAVEN and one for GRADLE
             if (readmeFile != null && readmeFile!!.canRead()) {
+                println("PROCESS README")
                 val readme = readmeFile!!
 
                 readme.useLines { lines ->
@@ -378,12 +434,17 @@ class VersionPlugin : Plugin<Project> {
         private fun getSourceFiles(project: Project): HashSet<File> {
             val alreadyParsedFiles = HashSet<File>()
 
-            val convention = project.convention.getPlugin(JavaPluginConvention::class.java)
-            convention.sourceSets.all {sourceSet ->
-                sourceSet.java {directorySet ->
+            project.convention.getPlugin(JavaPluginConvention::class.java).sourceSets.all { sourceSet ->
+                sourceSet.java { directorySet ->
                     directorySet.forEach { file ->
                         alreadyParsedFiles.add(file)
                     }
+                }
+
+                val set = (sourceSet as org.gradle.api.internal.HasConvention).convention.getPlugin(KotlinSourceSet::class.java)
+                val kot = set.kotlin
+                kot.files.forEach { file ->
+                    alreadyParsedFiles.add(file)
                 }
             }
 
@@ -423,13 +484,13 @@ class VersionPlugin : Plugin<Project> {
     }
 
     open class Get : DefaultTask() {
-        override fun getDescription(): String {
-            return "Outputs the detected version to the console"
+        init {
+            description = "Outputs the detected version to the console"
         }
 
         @TaskAction
         fun run() {
-            val version = VersionPlugin.getVersion(project)
+            val version = getVersion(project)
 
             println("Detected version is $version")
 
@@ -441,7 +502,7 @@ class VersionPlugin : Plugin<Project> {
 
                 // list all the files that have detected version information in them
                 filesWithVersionInfo.forEach { data ->
-                    println("\t${data.file}")
+                    println("\t${data.file} @ ${data.line}")
                 }
             }
         }
