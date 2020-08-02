@@ -355,7 +355,6 @@ class VersionPlugin : Plugin<Project> {
             // it won't always exist, but if it does, process it as well
             // TWO version entries possible. One for MAVEN and one for GRADLE
             if (readmeFile != null && readmeFile!!.canRead()) {
-                println("PROCESS README")
                 val readme = readmeFile!!
 
                 readme.useLines { lines ->
