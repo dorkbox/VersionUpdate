@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 dorkbox, llc
+ * Copyright 2020 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,18 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.time.Instant
 
-println("Gradle ${project.gradle.gradleVersion}")
+gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
+gradle.startParameter.warningMode = WarningMode.All
 
 plugins {
     java
     `java-gradle-plugin`
 
-    id("com.gradle.plugin-publish") version "0.11.0"
+    id("com.gradle.plugin-publish") version "0.12.0"
 
-    id("com.dorkbox.Licensing") version "1.4"
-    id("com.dorkbox.GradleUtils") version "1.2.7"
+    id("com.dorkbox.GradleUtils") version "1.8"
 
-    kotlin("jvm") version "1.3.21"
+    kotlin("jvm") version "1.3.72"
 }
 
 object Extras {
@@ -40,6 +40,7 @@ object Extras {
     const val name = "Version Update"
     const val id = "VersionUpdate"
     const val vendor = "Dorkbox LLC"
+    const val vendorUrl = "https://dorkbox.com"
     const val url = "https://git.dorkbox.com/dorkbox/VersionUpdate"
     val tags = listOf("version", "versioning", "semver", "semantic-versioning")
     val buildDate = Instant.now().toString()
@@ -52,19 +53,7 @@ object Extras {
 /////  assign 'Extras'
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
-description = Extras.description
-group = Extras.group
-version = Extras.version
-
-
-licensing {
-    license(License.APACHE_2) {
-        author(Extras.vendor)
-        url(Extras.url)
-        note(Extras.description)
-        note("Git tag code based upon 'gradle-git-version', Copyright 2015, Palantir Technologies. https://github.com/palantir/gradle-git-version")
-    }
-}
+GradleUtils.fixIntellijPaths()
 
 sourceSets {
     main {
@@ -78,20 +67,16 @@ sourceSets {
 }
 
 repositories {
+    mavenLocal() // this must be first!
     jcenter()
 }
 
 dependencies {
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation ("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
-    implementation ("org.eclipse.jgit:org.eclipse.jgit:4.5.4+")
-    implementation ("com.dorkbox:Version:1.0")
-
-    implementation ("org.slf4j:slf4j-api:1.7.25")
-    runtime ("ch.qos.logback:logback-classic:1.1.6")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:5+")
+    implementation("com.dorkbox:Version:1.2")
 }
 
 java {
