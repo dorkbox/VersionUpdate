@@ -32,10 +32,10 @@ IncrementTasks {
             // make an update to the version number based on major/minor/patch
             val incrementMajorVersion = version.incrementMajorVersion()
 
-            println("Incrementing Major version from $version -> $incrementMajorVersion")
+            println("\tIncrementing Major version from $version -> $incrementMajorVersion")
 
             // update the all java files and build file with the new version number
-            VersionPlugin.saveVersionInFilesAndCreateTag(project, version, incrementMajorVersion)
+            VersionPlugin.saveNewVersionInfo(project, version, incrementMajorVersion)
         }
     }
 
@@ -52,10 +52,10 @@ IncrementTasks {
             // make an update to the version number based on major/minor/patch
             val incrementMinorVersion = version.incrementMinorVersion()
 
-            println("Incrementing Minor version from $version -> $incrementMinorVersion")
+            println("\tIncrementing Minor version from $version -> $incrementMinorVersion")
 
             // update the all java files and build file with the new version number
-            VersionPlugin.saveVersionInFilesAndCreateTag(project, version, incrementMinorVersion)
+            VersionPlugin.saveNewVersionInfo(project, version, incrementMinorVersion)
         }
     }
 
@@ -71,10 +71,26 @@ IncrementTasks {
             // make an update to the version number based on major/minor/patch
             val incrementPatchVersion = version.incrementPatchVersion()
 
-            println("Incrementing Patch version from $version -> $incrementPatchVersion")
+            println("\tIncrementing Patch version from $version -> $incrementPatchVersion")
 
             // update the all java files and build file with the new version number
-            VersionPlugin.saveVersionInFilesAndCreateTag(project, version, incrementPatchVersion)
+            VersionPlugin.saveNewVersionInfo(project, version, incrementPatchVersion)
+        }
+    }
+
+    open class Tag : DefaultTask() {
+        init {
+            description = "Tag the current version in GIT"
+        }
+
+        @TaskAction
+        fun run() {
+            val version = VersionPlugin.getVersion(project)
+
+            println("\tTagging version: $version")
+
+            // update the all java files and build file with the new version number
+            VersionPlugin.createTag(project, version)
         }
     }
 }

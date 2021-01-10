@@ -39,6 +39,9 @@ class VersionPlugin : Plugin<Project> {
         project.tasks.create("get", Get::class.java).apply {
             group = "version"
         }
+        project.tasks.create("tag", IncrementTasks.Tag::class.java).apply {
+            group = "version"
+        }
         project.tasks.create("incrementMajor", IncrementTasks.Major::class.java).apply {
             group = "version"
         }
@@ -116,12 +119,12 @@ class VersionPlugin : Plugin<Project> {
          */
         private const val readmeMavenInfoText = """Maven Info"""
         private const val readmeGradleInfoText = """Gradle Info"""
-        private const val readmeTicksText = """````"""
+        private const val readmeTicksText = """```""" // only 3 ticks required
 
         /*
             Maven Info
             ---------
-            ````
+            ```
             <dependencies>
                 ...
                 <dependency>
@@ -130,22 +133,23 @@ class VersionPlugin : Plugin<Project> {
                     <version>3.14</version>
                 </dependency>
             </dependencies>
-            ````
+            ```
          */
         private val readmeMavenText = """(<version>)(.*)(</version>)""".toRegex()
 
         /*
             Gradle Info
             ---------
-            ````
+            ```
             dependencies {
                 ...
                 compile 'com.dorkbox:SystemTray:3.14'
             }
-            ````
+            ```
          */
+
         // note: this can be the ONLY version info present, otherwise there will be problems!
-        private val readmeGradleText = """('|".*:.*:)(.*)('|")""".toRegex()
+        private val readmeGradleText = """.*(['"].*:.*:)(.*)(['"])""".toRegex()
 
 
         data class VerData(val file: File, val line: Int, val version: String, val lineReplacement: String)
@@ -166,18 +170,7 @@ class VersionPlugin : Plugin<Project> {
         }
 
 
-        fun saveVersionInFilesAndCreateTag(project: Project, oldVersion: Version, newVersion: Version) {
-            // make sure all code is committed (no un-committed files and no staged files). Throw error and exit if there is
-            val git = getGit(project)
-            val status = git.status().call()
-
-            if (status.hasUncommittedChanges()) {
-                println("Please commit or stash the following files: ${status.uncommittedChanges}")
-                throw GradleException("Cannot continue when files have not been committed")
-            }
-
-
-
+        fun saveNewVersionInfo(project: Project, oldVersion: Version, newVersion: Version) {
             // Verifies that all of the project files are set to the specified version
             val filesWithVersionInfo = verifyVersion(project, oldVersion, newVersion)
 
@@ -191,7 +184,7 @@ class VersionPlugin : Plugin<Project> {
                         lines.forEach { line ->
                             if (lineNumber == data.line) {
                                 writer.println(data.lineReplacement)
-                                println("Updating file '${data.file}' to version $newVersion at line $lineNumber")
+                                println("\tUpdating file '${data.file}' to version $newVersion at line $lineNumber")
                             }
                             else {
                                 writer.println(line)
@@ -204,8 +197,29 @@ class VersionPlugin : Plugin<Project> {
                 check(data.file.delete() && tempFile.renameTo(data.file)) { "Failed to replace file ${data.file}" }
             }
 
-            // make sure there are no git tags with the current tag name
+            // now make sure the files were actually updated
+            val updatedFilesWithVersionInfo = verifyVersion(project, newVersion, newVersion)
 
+            val oldFiles = filesWithVersionInfo.map { verData -> verData.file }.toMutableList()
+            val newFiles = updatedFilesWithVersionInfo.map { verData -> verData.file }
+
+            oldFiles.removeAll(newFiles)
+
+            if (oldFiles.isNotEmpty()) {
+                throw GradleException("Version information in files $oldFiles were not successfully updated.")
+            }
+        }
+
+        fun createTag(project: Project, newVersion: Version) {
+            // make sure all code is committed (no un-committed files and no staged files). Throw error and exit if there is
+            val git = getGit(project)
+            val status = git.status().call()
+
+            if (status.hasUncommittedChanges()) {
+                println("The following files are uncommitted: ${status.uncommittedChanges}")
+            }
+
+            // make sure there are no git tags with the current tag name
             val tagName = "Version_$newVersion"
 
             // do we already have this tag?
@@ -216,37 +230,23 @@ class VersionPlugin : Plugin<Project> {
                 }
             }
 
-
-            // now make sure the files were actually updated
-            val updatedFilesWithVersionInfo = verifyVersion(project, newVersion, newVersion)
-
-            val oldFiles = filesWithVersionInfo.map { verData -> verData.file }.toMutableList()
-            val newFiles = updatedFilesWithVersionInfo.map { verData -> verData.file }
-
-            oldFiles.removeAll(newFiles)
-
-            if (oldFiles.isNotEmpty()) {
-                throw GradleException("Files $oldFiles were not successfully updated. Aborting git tag and commit")
-            }
-
+            // Verifies that all of the project files are set to the specified version
+            val filesWithVersionInfo = verifyVersion(project, newVersion, newVersion)
+            val files = filesWithVersionInfo.map { verData -> verData.file }
 
             // must include the separator.
             val projectPath = project.buildFile.parentFile.normalize().absolutePath + File.separator
 
-            newFiles.forEach {
+            files.forEach {
                 // now add the file to git. MUST BE repository-relative path!
                 val filePath = it.normalize().absolutePath.replace(projectPath, "")
                 git.add().addFilepattern(filePath).call()
             }
 
-            // now commit these updated files
-            git.commit().setMessage("Updated version from $oldVersion to $newVersion").call()
-
-
             // now create the git tag
             git.tag().setName(tagName).call()
 
-            println("Successfully updated version information and created git tag $tagName" )
+            println("Successfully created git tag $tagName" )
         }
 
         /**
@@ -438,10 +438,14 @@ class VersionPlugin : Plugin<Project> {
                     }
                 }
 
-                val set = (sourceSet as org.gradle.api.internal.HasConvention).convention.getPlugin(KotlinSourceSet::class.java)
-                val kot = set.kotlin
-                kot.files.forEach { file ->
-                    alreadyParsedFiles.add(file)
+                try {
+                    val set = (sourceSet as org.gradle.api.internal.HasConvention).convention.getPlugin(KotlinSourceSet::class.java)
+                    val kot = set.kotlin
+                    kot.files.forEach { file ->
+                        alreadyParsedFiles.add(file)
+                    }
+                } catch (e: Exception) {
+                    //ignored. kotlin might not exist
                 }
             }
 
@@ -495,12 +499,14 @@ class VersionPlugin : Plugin<Project> {
             val filesWithVersionInfo = verifyVersion(project, version, version)
 
             if (filesWithVersionInfo.isNotEmpty()) {
-                println("Detected files with version are:")
+                println("\tDetected files with version are:")
 
                 // list all the files that have detected version information in them
                 filesWithVersionInfo.forEach { data ->
                     println("\t${data.file} @ ${data.line}")
                 }
+            } else {
+                throw GradleException("Expecting files with version information, but none were found")
             }
         }
     }
