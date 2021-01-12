@@ -55,11 +55,10 @@ class VersionPlugin : Plugin<Project> {
         project.afterEvaluate {
             // just make sure that we have a version defined.
             val version = project.version.toString()
-            project.version.toString()
 
             if (version.isBlank() || version == Project.DEFAULT_VERSION) {
                 // no version info specified, but version task was called
-                throw GradleException("Project version information is unset. Please set via `project.version = '1.0.0'`")
+                println("\tProject ${project.name} version information is unset. Please set via `project.version = '1.0'`")
             }
         }
     }
@@ -85,12 +84,14 @@ class VersionPlugin : Plugin<Project> {
         private val versionText = """(return ")(.*)(")""".toRegex()
 
 
-        // version = '1.0.0'
-        // project.version = '1.0.0'
-        // version = "1.0.0"
-        // project.version = "1.0.0"
-        private val buildFileVersionText = """(.*version\s*=\s*'|"\s*)(.*)('|"')""".toRegex()
+        // NOT VALID
+        // id("com.dorkbox.Licensing") version "2.5.2"
 
+        // VALID (because of different ways to assign values, we want to be explicit)
+        // version = "1.0.0"
+        // const val version = '1.0.0'
+        // project.version = "1.0.0"
+        private val buildFileVersionText = """^(?:\s)*\b(?:const val version|project\.version|version)\b(?:\s*=\s*)(?:'|")(\d.+)(?:'|")$""".toRegex()
 
 
         /*
@@ -329,7 +330,7 @@ class VersionPlugin : Plugin<Project> {
                     if (line.contains(buildText)) {
                         val matchResult = buildFileVersionText.find(line)
                         if (matchResult != null) {
-                            val (_, ver, _) = matchResult.destructured
+                            val (ver) = matchResult.destructured
                             // verify it's what we think it is
                             if (ver == oldVersion.toString()) {
                                 val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
@@ -493,13 +494,13 @@ class VersionPlugin : Plugin<Project> {
         fun run() {
             val version = getVersion(project)
 
-            println("Detected version is $version")
+            println("Detected '${project.name}' version is $version")
 
             // Verifies that all of the project files are set to the specified version
             val filesWithVersionInfo = verifyVersion(project, version, version)
 
             if (filesWithVersionInfo.isNotEmpty()) {
-                println("\tDetected files with version are:")
+                println("\tDetected files with version info are:")
 
                 // list all the files that have detected version information in them
                 filesWithVersionInfo.forEach { data ->
