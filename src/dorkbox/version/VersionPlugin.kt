@@ -97,7 +97,7 @@ class VersionPlugin : Plugin<Project> {
         /*
             Maven Info
             ---------
-            ````
+            ```
             <dependencies>
                 ...
                 <dependency>
@@ -106,17 +106,17 @@ class VersionPlugin : Plugin<Project> {
                     <version>3.14</version>
                 </dependency>
             </dependencies>
-            ````
+            ```
 
 
             Gradle Info
             ---------
-            ````
+            ```
             dependencies {
                 ...
                 compile 'com.dorkbox:SystemTray:3.14'
             }
-            ````
+            ```
          */
         private const val readmeMavenInfoText = """Maven Info"""
         private const val readmeGradleInfoText = """Gradle Info"""
