@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import java.io.File
 import java.io.IOException
 import java.util.*
+import kotlin.io.path.ExperimentalPathApi
 
 
 /**
@@ -38,18 +39,27 @@ class VersionPlugin : Plugin<Project> {
 
         project.tasks.create("get", Get::class.java).apply {
             group = "version"
+            description = "Outputs the detected version to the console"
+        }
+        project.tasks.create("get-debug", GetDebug::class.java).apply {
+            group = "version"
+            description = "Outputs the detected version to the console, with additional debug information"
         }
         project.tasks.create("tag", IncrementTasks.Tag::class.java).apply {
             group = "version"
+            description = "Tag the current version in GIT"
         }
         project.tasks.create("incrementMajor", IncrementTasks.Major::class.java).apply {
             group = "version"
+            description = "Increments the MAJOR version by 1, and resets MINOR/PATCH to 0"
         }
         project.tasks.create("incrementMinor", IncrementTasks.Minor::class.java).apply {
             group = "version"
+            description = "Increments the MINOR version by 1, and resets PATCH to 0"
         }
         project.tasks.create("incrementPatch", IncrementTasks.Patch::class.java).apply {
             group = "version"
+            description = "Increments the PATCH version by 1"
         }
 
         project.afterEvaluate {
@@ -77,7 +87,7 @@ class VersionPlugin : Plugin<Project> {
         private val kotlinText = """fun getVersion\(\)\s*:\s*String\s*\{""".toRegex()
 
         // const val version =
-        private val kotlinText2 = """const val version\s*=""".toRegex()
+        private val kotlinText2 = """.*val version\s*=""".toRegex()
         private val kotlinText2VersionText = """(version\s*=\s*")(.*)(")""".toRegex()
 
         // return "...."
@@ -138,6 +148,8 @@ class VersionPlugin : Plugin<Project> {
          */
         private val readmeMavenText = """(<version>)(.*)(</version>)""".toRegex()
 
+
+
         /*
             Gradle Info
             ---------
@@ -148,7 +160,6 @@ class VersionPlugin : Plugin<Project> {
             }
             ```
          */
-
         // note: this can be the ONLY version info present, otherwise there will be problems!
         private val readmeGradleText = """.*(['"].*:.*:)(.*)(['"])""".toRegex()
 
@@ -171,6 +182,7 @@ class VersionPlugin : Plugin<Project> {
         }
 
 
+        @ExperimentalPathApi
         fun saveNewVersionInfo(project: Project, oldVersion: Version, newVersion: Version) {
             // Verifies that all of the project files are set to the specified version
             val filesWithVersionInfo = verifyVersion(project, oldVersion, newVersion)
@@ -178,7 +190,7 @@ class VersionPlugin : Plugin<Project> {
             // now save the NEW version to all of the files (this also has our build + README files)
             filesWithVersionInfo.forEach { data ->
                 var lineNumber = 1  // visual editors start at 1, so we should too
-                val tempFile = createTempFile()
+                val tempFile = kotlin.io.path.createTempFile("tmp", "data.file").toFile()
 
                 tempFile.printWriter().use { writer ->
                     data.file.useLines { lines ->
@@ -254,13 +266,23 @@ class VersionPlugin : Plugin<Project> {
          * Verifies that all of the project files are set to the specified version
          */
         @Suppress("DuplicatedCode")
-        private fun verifyVersion(project: Project, oldVersion: Version, newVersion: Version): List<VerData> {
+        private fun verifyVersion(project: Project, oldVersion: Version, newVersion: Version, debug: Boolean = false): List<VerData> {
             val alreadyParsedFiles = getSourceFiles(project)
             val filesWithVersionInfo = ArrayList<VerData>()
 
+            if (debug) {
+                println("Expecting version info: old=$oldVersion, new=$newVersion")
+                println("Checking code files: $javaText")
+                println("Checking code files: $kotlinText")
+                println("Checking code files: $kotlinText2")
+            }
 
             // collect all of the class files that have a version defined (look in source sets. must match our pre-defined pattern)
             alreadyParsedFiles.forEach { file ->
+                if (debug) {
+                    println("\t$file")
+                }
+
                 run fileCheck@{
                     var matchesText = false
                     var lineNumber = 1  // visual editors start at 1, so we should too
@@ -269,6 +291,10 @@ class VersionPlugin : Plugin<Project> {
                         file.useLines { lines ->
                             lines.forEach { line ->
                                 if (line.contains(javaText)) {
+                                    if (debug) {
+                                        println("\t\tFound matching JAVA prefix text ($lineNumber): $javaText")
+                                    }
+
                                     // this is so the text is matched on the following line
                                     matchesText = true
                                 }
@@ -279,6 +305,8 @@ class VersionPlugin : Plugin<Project> {
                                         if (ver == oldVersion.toString()) {
                                             val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
                                             filesWithVersionInfo.add(VerData(file, lineNumber, ver, lineReplacement))
+                                        } else {
+                                            println("\tVersion mismatch in $file! $ver != $oldVersion (line: $lineNumber)")
                                         }
                                         return@fileCheck
                                     }
@@ -291,9 +319,17 @@ class VersionPlugin : Plugin<Project> {
                         file.useLines { lines ->
                             lines.forEach { line ->
                                 if (line.contains(kotlinText)) {
+                                    if (debug) {
+                                        println("\t\tFound matching KOTLIN prefix text ($lineNumber): $kotlinText")
+                                    }
+
                                     // this is so the text is matched on the following line
                                     matchesText = true
                                 } else if (line.contains(kotlinText2)) {
+                                    if (debug) {
+                                        println("\t\tFound matching KOTLIN same-line text ($lineNumber): $kotlinText2")
+                                    }
+
                                     // same line
                                     val matchResult = kotlinText2VersionText.find(line)
                                     if (matchResult != null) {
@@ -301,6 +337,8 @@ class VersionPlugin : Plugin<Project> {
                                         if (ver == oldVersion.toString()) {
                                             val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
                                             filesWithVersionInfo.add(VerData(file, lineNumber, ver, lineReplacement))
+                                        } else {
+                                            println("\tVersion mismatch in $file! $ver != $oldVersion (line: $lineNumber)")
                                         }
                                         return@fileCheck
                                     }
@@ -311,6 +349,8 @@ class VersionPlugin : Plugin<Project> {
                                         if (ver == oldVersion.toString()) {
                                             val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
                                             filesWithVersionInfo.add(VerData(file, lineNumber, ver, lineReplacement))
+                                        } else {
+                                            println("\tVersion mismatch in $file! $ver != $oldVersion (line: $lineNumber)")
                                         }
                                         return@fileCheck
                                     }
@@ -322,12 +362,21 @@ class VersionPlugin : Plugin<Project> {
                 }
             }
 
+            if (debug) {
+                println("Checking build file for: $kotlinText")
+                println("\t${project.buildFile}")
+            }
+
             // get version info by file parsing from gradle.build file
             project.buildFile.useLines { lines ->
                 var lineNumber = 1  // visual editors start at 1, so we should too
 
                 lines.forEach { line ->
                     if (line.contains(buildText)) {
+                        if (debug) {
+                            println("\t\tFound matching build same-line text ($lineNumber): $buildText")
+                        }
+
                         val matchResult = buildFileVersionText.find(line)
                         if (matchResult != null) {
                             val (ver) = matchResult.destructured
@@ -336,9 +385,12 @@ class VersionPlugin : Plugin<Project> {
                                 val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
                                 filesWithVersionInfo.add(VerData(project.buildFile, lineNumber, ver, lineReplacement))
                                 return@useLines
+                            } else {
+                                println("\tVersion mismatch in ${project.buildFile}! $ver != $oldVersion (line: $lineNumber)")
                             }
                         }
                     }
+
                     lineNumber++
                 }
             }
@@ -346,10 +398,25 @@ class VersionPlugin : Plugin<Project> {
             // get version info by parsing the README.MD file, if it exists (OPTIONAL)
             // this file will always exist next to the build file. We should ignore case (because yay windows!)
             var readmeFile: File? = null
-            project.buildFile.parentFile.listFiles()?.forEach {
+            val listFiles = project.buildFile.parentFile.listFiles()
+            listFiles?.forEach {
                 if (it.name.toLowerCase() == "readme.md") {
                     readmeFile = it
                     return@forEach
+                }
+            }
+
+            if (debug) {
+                if (readmeFile != null) {
+                    println("Found readme file: $readmeFile")
+                } else {
+                    if (listFiles == null) {
+                        println("\tNO FILES FOUND!!")
+                    } else {
+                        listFiles.forEach {
+                            println("\t$it")
+                        }
+                    }
                 }
             }
 
@@ -361,52 +428,126 @@ class VersionPlugin : Plugin<Project> {
                 readme.useLines { lines ->
                     var lineNumber = 1  // visual editors start at 1, so we should too
 
+                    // only 1 instance of maven/gradle can be found!
+                    var enableMaven = true
+                    var enableGradle = true
+
+                    var foundSectionTicks = false
                     var foundMaven = false
                     var foundGradle = false
 
-                    var readyMaven = false
-                    var readyGradle = false
-
                     // file has MAVEN info first, followed by GRADLE info
-                    lines.forEach { line ->
+                    lines.forEach {
+                        val line = it.trim()
+
                         when {
-                            !foundMaven && line.trim() == readmeMavenInfoText -> foundMaven = true
-                            !foundGradle && line.trim() == readmeGradleInfoText -> foundGradle = true
-                            foundMaven && line.trim() == readmeTicksText -> readyMaven = true
-                            foundGradle && line.trim() == readmeTicksText -> readyGradle = true
-                            readyGradle && line.trim() == readmeTicksText -> foundMaven = false
-                            readyGradle && line.trim() == readmeTicksText -> foundGradle = false
+                            enableMaven && !foundMaven && line == readmeMavenInfoText -> {
+                                foundMaven = true
+                                if (debug) {
+                                    println("\t\tFound maven ($lineNumber): $readmeMavenInfoText")
+                                }
+                            }
+                            enableMaven && !foundSectionTicks && foundMaven && line == readmeTicksText -> {
+                                foundSectionTicks = true
+                                if (debug) {
+                                    println("\t\tFound maven ticks ($lineNumber): $readmeTicksText")
+                                }
+                            }
+                            enableMaven && foundSectionTicks && line == readmeTicksText -> {
+                                enableMaven = false
+                                foundMaven = false
+                                foundSectionTicks = false
+                                if (debug) {
+                                    println("\t\tEnd maven ticks ($lineNumber)")
+                                }
+                            }
+
+
+                            enableGradle && !foundGradle && line == readmeGradleInfoText -> {
+                                foundGradle = true
+                                if (debug) {
+                                    println("\t\tFound gradle ($lineNumber): $readmeGradleInfoText")
+                                }
+                            }
+                            enableGradle && !foundSectionTicks && foundGradle && line == readmeTicksText -> {
+                                foundSectionTicks = true
+                                if (debug) {
+                                    println("\t\tFound gradle ticks ($lineNumber): $readmeTicksText")
+                                }
+                            }
+                            enableGradle && foundSectionTicks && line == readmeTicksText -> {
+                                enableGradle = false
+                                foundGradle = false
+                                foundSectionTicks = false
+                                if (debug) {
+                                    println("\t\tEnd gradle ticks ($lineNumber)")
+                                }
+                            }
 
                             // block that maven stuff is in
-                            foundMaven && readyMaven -> {
+                            foundMaven && foundSectionTicks -> {
+                                if (debug) {
+                                    println("\t\tSearching maven ($lineNumber): '$readmeMavenText' --> '$line'")
+                                }
+
                                 val matchResult = readmeMavenText.find(line)
                                 if (matchResult != null) {
                                     val (_, ver, _) = matchResult.destructured
+                                    if (debug) {
+                                        println("\t\t\tmatched maven info ($lineNumber): $ver" )
+                                    }
+
+
                                     // verify it's what we think it is
                                     if (ver == oldVersion.toString()) {
                                         val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
                                         filesWithVersionInfo.add(VerData(readme, lineNumber, ver, lineReplacement))
+
                                         foundMaven = false
-                                        readyMaven = false
-                                        // println("FOUND MAVEN INFO $ver")
+
+                                        if (debug) {
+                                            println("\t\t\tmatched maven version! ($lineNumber): $ver")
+                                        }
                                         // return@useLines // keep going, since we have to look for gradle info too
+                                    } else {
+                                        if (debug) {
+                                            print("\t\t")
+                                        }
+                                        println("\tMaven version mismatch in $readmeFile! $ver != $oldVersion (line: $lineNumber)")
                                     }
                                 }
                             }
 
                             // block that gradle stuff is in
-                            foundGradle && readyGradle -> {
+                            foundGradle && foundSectionTicks -> {
+                                if (debug) {
+                                    println("\t\tSearching gradle ($lineNumber): '$readmeGradleText' --> '$line'")
+                                }
+
                                 val matchResult = readmeGradleText.find(line)
                                 if (matchResult != null) {
                                     val (_, ver, _) = matchResult.destructured
+                                    if (debug) {
+                                        println("\t\t\tmatched gradle info ($lineNumber): $ver" )
+                                    }
+
+
                                     // verify it's what we think it is
                                     if (ver == oldVersion.toString()) {
                                         val lineReplacement = line.replace(oldVersion.toString(), newVersion.toString())
                                         filesWithVersionInfo.add(VerData(readme, lineNumber, ver, lineReplacement))
+
                                         foundGradle = false
-                                        readyGradle = false
-                                        // println("FOUND GRADLE INFO $ver")
-                                        return@useLines
+
+                                        if (debug) {
+                                            println("\t\t\tmatched gradle version! ($lineNumber): $ver")
+                                        }
+                                        // return@useLines // keep going, since we have to look for maven info too (in case order is reversed)
+                                    } else {
+                                        if (debug) {
+                                            print("\t\t")
+                                        }
+                                        println("\tGradle version mismatch in $readmeFile! $ver != $oldVersion (line: $lineNumber)")
                                     }
                                 }
                             }
@@ -419,10 +560,12 @@ class VersionPlugin : Plugin<Project> {
 
 
             // make sure version info all match (throw error and exit if they do not)
-            filesWithVersionInfo.forEach { v ->
-                // println("Verifying file '$f' for version '${v.version} at line ${v.line}'")
-                if (Version.from(v.version) != oldVersion) {
-                    throw GradleException("Version information mismatch, expected $oldVersion, got ${v.version} in file: ${v.file} at line ${v.line}")
+            filesWithVersionInfo.forEach { info ->
+                if (debug) {
+                     println("Verifying file '${info.file}' for version '${info.version} at line ${info.line}'")
+                }
+                if (Version.from(info.version) != oldVersion) {
+                    throw GradleException("Version information mismatch, expected $oldVersion, got ${info.version} in file: ${info.file} at line ${info.line}")
                 }
             }
 
@@ -486,10 +629,6 @@ class VersionPlugin : Plugin<Project> {
     }
 
     open class Get : DefaultTask() {
-        init {
-            description = "Outputs the detected version to the console"
-        }
-
         @TaskAction
         fun run() {
             val version = getVersion(project)
@@ -500,7 +639,7 @@ class VersionPlugin : Plugin<Project> {
             val filesWithVersionInfo = verifyVersion(project, version, version)
 
             if (filesWithVersionInfo.isNotEmpty()) {
-                println("\tDetected files with version info are:")
+                println("Detected files with version info are:")
 
                 // list all the files that have detected version information in them
                 filesWithVersionInfo.forEach { data ->
@@ -508,6 +647,29 @@ class VersionPlugin : Plugin<Project> {
                 }
             } else {
                 throw GradleException("Expecting files with version information, but none were found")
+            }
+        }
+    }
+
+    open class GetDebug : DefaultTask() {
+        @TaskAction
+        fun run() {
+            val version = getVersion(project)
+
+            println("Detected '${project.name}' version is $version")
+
+            // Verifies that all of the project files are set to the specified version
+            val filesWithVersionInfo = verifyVersion(project, version, version, true)
+
+            if (filesWithVersionInfo.isNotEmpty()) {
+                println("Detected files with version info are:")
+
+                // list all the files that have detected version information in them
+                filesWithVersionInfo.forEach { data ->
+                    println("\t${data.file} @ ${data.line}")
+                }
+            } else {
+                println("Expecting files with version information, but none were found")
             }
         }
     }

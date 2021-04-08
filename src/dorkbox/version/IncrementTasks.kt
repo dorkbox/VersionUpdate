@@ -17,14 +17,12 @@ package dorkbox.version
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
+import kotlin.io.path.ExperimentalPathApi
 
 class
 IncrementTasks {
     open class Major : DefaultTask() {
-        init {
-            description = "Increments the MAJOR version by 1, and resets MINOR/PATCH to 0"
-        }
-
+        @ExperimentalPathApi
         @TaskAction
         fun run() {
             val version = VersionPlugin.getVersion(project)
@@ -40,11 +38,7 @@ IncrementTasks {
     }
 
     open class Minor : DefaultTask() {
-
-        init {
-            description = "Increments the MINOR version by 1, and resets PATCH to 0"
-        }
-
+        @ExperimentalPathApi
         @TaskAction
         fun run() {
             val version = VersionPlugin.getVersion(project)
@@ -60,10 +54,7 @@ IncrementTasks {
     }
 
     open class Patch : DefaultTask() {
-        init {
-            description = "Increments the PATCH version by 1"
-        }
-
+        @ExperimentalPathApi
         @TaskAction
         fun run() {
             val version = VersionPlugin.getVersion(project)
@@ -79,10 +70,6 @@ IncrementTasks {
     }
 
     open class Tag : DefaultTask() {
-        init {
-            description = "Tag the current version in GIT"
-        }
-
         @TaskAction
         fun run() {
             val version = VersionPlugin.getVersion(project)
