@@ -437,23 +437,22 @@ class VersionPlugin : Plugin<Project> {
                     var foundGradle = false
 
                     // file has MAVEN info first, followed by GRADLE info
-                    lines.forEach {
-                        val line = it.trim()
-
+                    lines.forEach { line ->
+                        val trimmed = line.trim()
                         when {
-                            enableMaven && !foundMaven && line == readmeMavenInfoText -> {
+                            enableMaven && !foundMaven && trimmed == readmeMavenInfoText -> {
                                 foundMaven = true
                                 if (debug) {
                                     println("\t\tFound maven ($lineNumber): $readmeMavenInfoText")
                                 }
                             }
-                            enableMaven && !foundSectionTicks && foundMaven && line == readmeTicksText -> {
+                            enableMaven && !foundSectionTicks && foundMaven && trimmed == readmeTicksText -> {
                                 foundSectionTicks = true
                                 if (debug) {
                                     println("\t\tFound maven ticks ($lineNumber): $readmeTicksText")
                                 }
                             }
-                            enableMaven && foundSectionTicks && line == readmeTicksText -> {
+                            enableMaven && foundSectionTicks && trimmed == readmeTicksText -> {
                                 enableMaven = false
                                 foundMaven = false
                                 foundSectionTicks = false
@@ -463,19 +462,19 @@ class VersionPlugin : Plugin<Project> {
                             }
 
 
-                            enableGradle && !foundGradle && line == readmeGradleInfoText -> {
+                            enableGradle && !foundGradle && trimmed == readmeGradleInfoText -> {
                                 foundGradle = true
                                 if (debug) {
                                     println("\t\tFound gradle ($lineNumber): $readmeGradleInfoText")
                                 }
                             }
-                            enableGradle && !foundSectionTicks && foundGradle && line == readmeTicksText -> {
+                            enableGradle && !foundSectionTicks && foundGradle && trimmed == readmeTicksText -> {
                                 foundSectionTicks = true
                                 if (debug) {
                                     println("\t\tFound gradle ticks ($lineNumber): $readmeTicksText")
                                 }
                             }
-                            enableGradle && foundSectionTicks && line == readmeTicksText -> {
+                            enableGradle && foundSectionTicks && trimmed == readmeTicksText -> {
                                 enableGradle = false
                                 foundGradle = false
                                 foundSectionTicks = false
