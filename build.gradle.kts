@@ -66,7 +66,7 @@ sourceSets {
 
 repositories {
     mavenLocal() // this must be first!
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
