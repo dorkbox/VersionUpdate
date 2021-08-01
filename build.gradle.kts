@@ -23,7 +23,7 @@ plugins {
     `java-gradle-plugin`
 
     id("com.gradle.plugin-publish") version "0.14.0"
-    id("com.dorkbox.GradleUtils") version "2.2"
+    id("com.dorkbox.GradleUtils") version "2.8"
 
     kotlin("jvm") version "1.4.32"
 }
@@ -32,7 +32,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "2.3"
+    const val version = "2.4"
 
     // set as project.ext
     const val name = "Version Update"
@@ -40,7 +40,6 @@ object Extras {
     const val vendor = "Dorkbox LLC"
     const val vendorUrl = "https://dorkbox.com"
     const val url = "https://git.dorkbox.com/dorkbox/VersionUpdate"
-    val tags = listOf("version", "versioning", "semver", "semantic-versioning")
 
     val buildDate = Instant.now().toString()
 }
@@ -116,7 +115,7 @@ pluginBundle {
             id = "${Extras.group}.${Extras.id}"
             displayName = Extras.name
             description = Extras.description
-            tags = Extras.tags
+            tags = listOf("version", "versioning", "semver", "semantic-versioning")
             version = Extras.version
         }
     }

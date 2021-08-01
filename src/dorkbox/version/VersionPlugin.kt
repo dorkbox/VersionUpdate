@@ -184,24 +184,63 @@ class VersionPlugin : Plugin<Project> {
 
         @ExperimentalPathApi
         fun saveNewVersionInfo(project: Project, oldVersion: Version, newVersion: Version) {
-            // Verifies that all of the project files are set to the specified version
+            // Verifies that all the project files are set to the specified version
             val filesWithVersionInfo = verifyVersion(project, oldVersion, newVersion)
 
-            // now save the NEW version to all of the files (this also has our build + README files)
+            // now save the NEW version to all the files (this also has our build + README files)
             filesWithVersionInfo.forEach { data ->
                 var lineNumber = 1  // visual editors start at 1, so we should too
                 val tempFile = kotlin.io.path.createTempFile("tmp", "data.file").toFile()
 
-                tempFile.printWriter().use { writer ->
-                    data.file.useLines { lines ->
-                        lines.forEach { line ->
+                // NOTE: we want to REUSE whatever line-encoding is used in the file. We assume that the entire file is consistent
+                // CRLF, LF, CR
+                // '\n' and '\r'
+                //
+                // we read the first TWO lines to determine this.
+
+                val cr = '\r'.toByte().toInt()
+                val lf = '\n'.toByte().toInt()
+
+                var count = 0
+                val bufferSize = DEFAULT_BUFFER_SIZE-1
+
+                var hasCR = false
+                var hasLF = false
+                val reader = data.file.bufferedReader(Charsets.UTF_8)
+                reader.mark(bufferSize)
+
+                while (count++ < bufferSize) {
+                    val char = reader.read()
+                    if (char == cr) {
+                        if (hasCR) break // if we ALREADY read this line ending, abort because we have read enough to determine everything
+                        hasCR = true
+                    } else if (char == lf) {
+                        if (hasLF) break // if we ALREADY read this line ending, abort because we have read enough to determine everything
+                        hasLF = true
+                    }
+                }
+                reader.reset()
+
+                val NL = when {
+                    hasCR && hasLF -> "\r\n"
+                    hasCR  -> "\r"
+                    else   -> "\n"
+                }
+
+                tempFile.bufferedWriter(Charsets.UTF_8).use { writer ->
+                    reader.use {
+                        it.lineSequence().forEach { line ->
                             if (lineNumber == data.line) {
-                                writer.println(data.lineReplacement)
+                                writer.write(data.lineReplacement)
+                                writer.write(NL)
                                 println("\tUpdating file '${data.file}' to version $newVersion at line $lineNumber")
                             }
                             else {
-                                writer.println(line)
+                                writer.write(line)
+                                writer.write(NL)
                             }
+
+                            writer.flush()
                             lineNumber++
                         }
                     }
