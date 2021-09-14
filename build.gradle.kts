@@ -25,7 +25,7 @@ plugins {
     id("com.gradle.plugin-publish") version "0.14.0"
     id("com.dorkbox.GradleUtils") version "2.8"
 
-    kotlin("jvm") version "1.4.32"
+    kotlin("jvm") version "1.5.21"
 }
 
 object Extras {
