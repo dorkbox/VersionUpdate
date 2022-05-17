@@ -32,7 +32,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "2.4"
+    const val version = "2.4.1"
 
     // set as project.ext
     const val name = "Version Update"
@@ -72,7 +72,7 @@ dependencies {
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
-    implementation("org.eclipse.jgit:org.eclipse.jgit:5+")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:6.1.0.202203080745-r")
     implementation("com.dorkbox:Version:2.4")
 }
 
