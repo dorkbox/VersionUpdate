@@ -262,6 +262,21 @@ class VersionPlugin : Plugin<Project> {
             }
         }
 
+        /**
+         * Gets the most recent commit hash in the specified repository.
+         */
+        fun gitCommitHash(directory: File, length: Int = 7) : String {
+            val latestCommit = getGit(directory).log().setMaxCount(1).call().iterator().next()
+            val latestCommitHash = latestCommit.name
+
+            return if (latestCommitHash?.isNotEmpty() == true) {
+                val maxLength = length.coerceAtMost(latestCommitHash.length)
+                latestCommitHash.substring(0, maxLength)
+            } else {
+                "NO_HASH"
+            }
+        }
+
         fun createTag(project: Project, newVersion: Version) {
             // make sure all code is committed (no un-committed files and no staged files). Throw error and exit if there is
             val git = getGit(project)
@@ -632,6 +647,15 @@ class VersionPlugin : Plugin<Project> {
             }
 
             return alreadyParsedFiles
+        }
+
+        private fun getGit(directory: File): Git {
+            try {
+                val gitDir = getRootGitDir(directory)
+                return Git.wrap(FileRepository(gitDir))
+            } catch (e: IOException) {
+                throw RuntimeException(e)
+            }
         }
 
         private fun getGit(project: Project): Git {
