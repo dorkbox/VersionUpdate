@@ -15,16 +15,14 @@
  */
 package dorkbox.version
 
-import com.dorkbox.version.Version
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.internal.storage.file.FileRepository
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskAction
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -167,7 +165,7 @@ class VersionPlugin : Plugin<Project> {
         data class VerData(val file: File, val line: Int, val version: String, val lineReplacement: String)
 
         /**
-         * Get's the version info from the project
+         * Gets the version info from the project
          */
         fun getVersion(project: Project): Version {
             // get the version info from project.version
@@ -178,7 +176,7 @@ class VersionPlugin : Plugin<Project> {
                 throw GradleException("Project version information is unset.")
             }
 
-            return Version.from(version)
+            return Version(version)
         }
 
 
@@ -198,8 +196,8 @@ class VersionPlugin : Plugin<Project> {
                 //
                 // we read the first TWO lines to determine this.
 
-                val cr = '\r'.toByte().toInt()
-                val lf = '\n'.toByte().toInt()
+                val cr = '\r'.code.toByte().toInt()
+                val lf = '\n'.code.toByte().toInt()
 
                 var count = 0
                 val bufferSize = DEFAULT_BUFFER_SIZE-1
@@ -322,7 +320,7 @@ class VersionPlugin : Plugin<Project> {
         @Suppress("DuplicatedCode")
         private fun verifyVersion(project: Project, oldVersion: Version, newVersion: Version, debug: Boolean = false): List<VerData> {
             val alreadyParsedFiles = getSourceFiles(project)
-            val filesWithVersionInfo = ArrayList<VerData>()
+            val filesWithVersionInfo = mutableListOf<VerData>()
 
             if (debug) {
                 println("Expecting version info: old=$oldVersion, new=$newVersion")
@@ -454,7 +452,7 @@ class VersionPlugin : Plugin<Project> {
             var readmeFile: File? = null
             val listFiles = project.buildFile.parentFile.listFiles()
             listFiles?.forEach {
-                if (it.name.toLowerCase() == "readme.md") {
+                if (it.name.lowercase(Locale.getDefault()) == "readme.md") {
                     readmeFile = it
                     return@forEach
                 }
@@ -617,7 +615,7 @@ class VersionPlugin : Plugin<Project> {
                 if (debug) {
                      println("Verifying file '${info.file}' for version '${info.version} at line ${info.line}'")
                 }
-                if (Version.from(info.version) != oldVersion) {
+                if (Version(info.version) != oldVersion) {
                     throw GradleException("Version information mismatch, expected $oldVersion, got ${info.version} in file: ${info.file} at line ${info.line}")
                 }
             }
@@ -625,25 +623,25 @@ class VersionPlugin : Plugin<Project> {
             return filesWithVersionInfo.toList()
         }
 
-        private fun getSourceFiles(project: Project): HashSet<File> {
-            val alreadyParsedFiles = HashSet<File>()
+        private fun getSourceFiles(project: Project): Set<File> {
+            val alreadyParsedFiles = mutableSetOf<File>()
 
-            project.convention.getPlugin(JavaPluginConvention::class.java).sourceSets.all { sourceSet ->
-                sourceSet.java { directorySet ->
-                    directorySet.forEach { file ->
-                        alreadyParsedFiles.add(file)
-                    }
-                }
+            // check to see if we have any kotlin file
+            val sourceSets = project.extensions.getByName("sourceSets") as SourceSetContainer
+            val main = sourceSets.getByName("main")
 
-                try {
-                    val set = (sourceSet as org.gradle.api.internal.HasConvention).convention.getPlugin(KotlinSourceSet::class.java)
-                    val kot = set.kotlin
-                    kot.files.forEach { file ->
-                        alreadyParsedFiles.add(file)
-                    }
-                } catch (e: Exception) {
-                    //ignored. kotlin might not exist
+            main.java.files.forEach { file ->
+                alreadyParsedFiles.add(file)
+            }
+
+            try {
+                val kotlin = project.extensions.getByType(org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension::class.java).sourceSets.getByName("main").kotlin
+
+                kotlin.files.forEach { file ->
+                    alreadyParsedFiles.add(file)
                 }
+            } catch (e: Exception) {
+                //ignored. kotlin might not exist
             }
 
             return alreadyParsedFiles

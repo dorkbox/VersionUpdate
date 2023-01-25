@@ -22,17 +22,17 @@ plugins {
     java
     `java-gradle-plugin`
 
-    id("com.gradle.plugin-publish") version "0.14.0"
-    id("com.dorkbox.GradleUtils") version "2.8"
+    id("com.gradle.plugin-publish") version "1.1.0"
+    id("com.dorkbox.GradleUtils") version "3.9"
 
-    kotlin("jvm") version "1.5.21"
+    kotlin("jvm") version "1.7.0"
 }
 
 object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "2.5"
+    const val version = "2.6"
 
     // set as project.ext
     const val name = "Version Update"
@@ -48,32 +48,16 @@ object Extras {
 /////  assign 'Extras'
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
-GradleUtils.fixIntellijPaths()
-GradleUtils.defaultResolutionStrategy()
+GradleUtils.defaults()
 GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
 
-sourceSets {
-    main {
-        java {
-            setSrcDirs(listOf("src"))
-
-            // want to include kotlin files for the source. 'setSrcDirs' resets includes...
-            include("**/*.kt")
-        }
-    }
-}
-
-repositories {
-    mavenLocal() // this must be first!
-    mavenCentral()
-}
 
 dependencies {
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.1.0.202203080745-r")
-    implementation("com.dorkbox:Version:2.4")
+    implementation("com.dorkbox:Version:3.0")
 }
 
 tasks.jar.get().apply {
@@ -98,24 +82,16 @@ tasks.jar.get().apply {
 ////////    Plugin Publishing + Release
 /////////////////////////////////
 gradlePlugin {
+    website.set(Extras.url)
+    vcsUrl.set(Extras.url)
+
     plugins {
         create("Version") {
             id = "${Extras.group}.${Extras.id}"
             implementationClass = "dorkbox.version.VersionPlugin"
-        }
-    }
-}
-
-pluginBundle {
-    website = Extras.url
-    vcsUrl = Extras.url
-
-    (plugins) {
-        "Version" {
-            id = "${Extras.group}.${Extras.id}"
             displayName = Extras.name
             description = Extras.description
-            tags = listOf("version", "versioning", "semver", "semantic-versioning")
+            tags.set(listOf("version", "versioning", "semver", "semantic-versioning"))
             version = Extras.version
         }
     }
