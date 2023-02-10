@@ -23,7 +23,7 @@ plugins {
     `java-gradle-plugin`
 
     id("com.gradle.plugin-publish") version "1.1.0"
-    id("com.dorkbox.GradleUtils") version "3.9"
+    id("com.dorkbox.GradleUtils") version "3.13"
 
     kotlin("jvm") version "1.7.0"
 }
@@ -32,7 +32,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "2.6"
+    const val version = "2.7"
 
     // set as project.ext
     const val name = "Version Update"
@@ -51,6 +51,17 @@ GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
 GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
 
+sourceSets {
+    main {
+        java {
+            setSrcDirs(listOf("src"))
+
+            // want to include kotlin and java files for the source. 'setSrcDirs' resets includes...
+            // NOTE: if we DO NOT do this, then there will not be any sources in the "plugin sources" jar, as it expects only java
+            include("**/*.kt", "**/*.java")
+        }
+    }
+}
 
 dependencies {
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
