@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import java.time.Instant
 
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
 gradle.startParameter.warningMode = WarningMode.All
@@ -22,8 +21,8 @@ plugins {
     java
     `java-gradle-plugin`
 
-    id("com.gradle.plugin-publish") version "1.1.0"
-    id("com.dorkbox.GradleUtils") version "3.13"
+    id("com.gradle.plugin-publish") version "1.2.0"
+    id("com.dorkbox.GradleUtils") version "3.17"
 
     kotlin("jvm") version "1.7.0"
 }
@@ -32,7 +31,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "2.7"
+    const val version = "2.8"
 
     // set as project.ext
     const val name = "Version Update"
@@ -40,8 +39,6 @@ object Extras {
     const val vendor = "Dorkbox LLC"
     const val vendorUrl = "https://dorkbox.com"
     const val url = "https://git.dorkbox.com/dorkbox/VersionUpdate"
-
-    val buildDate = Instant.now().toString()
 }
 
 ///////////////////////////////
@@ -68,7 +65,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.1.0.202203080745-r")
-    implementation("com.dorkbox:Version:3.0")
+    implementation("com.dorkbox:Version:3.1")
 }
 
 tasks.jar.get().apply {
@@ -81,7 +78,7 @@ tasks.jar.get().apply {
         attributes["Specification-Vendor"] = Extras.vendor
 
         attributes["Implementation-Title"] = "${Extras.group}.${Extras.id}"
-        attributes["Implementation-Version"] = Extras.buildDate
+        attributes["Implementation-Version"] = GradleUtils.now()
         attributes["Implementation-Vendor"] = Extras.vendor
 
         attributes["Automatic-Module-Name"] = Extras.id
