@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 dorkbox, llc
+ * Copyright 2026 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,9 +105,8 @@ class VersionPlugin : Plugin<Project> {
         // const val version =
         private val kotlinString = """.*val version\s*=""".toRegex()
 
-//        private val string2VersionString = """(version\s*=\s*")(.*)(")""".toRegex()
         // Uses a positive lookahead to ensure at least one digit exists, then matches word characters, dots, plus, or minus
-        private val string2VersionString = """(version\s*=\s*)(")((?=.*\d)[\w.+-]*)(")""".toRegex()
+        private val string2VersionString = """(version\s*=\s*)"((?=.*\d)[\w.+-]*)(")""".toRegex()
 
 
 
