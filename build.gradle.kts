@@ -21,17 +21,19 @@ plugins {
     java
     `java-gradle-plugin`
 
-    id("com.gradle.plugin-publish") version "1.2.0"
-    id("com.dorkbox.GradleUtils") version "3.17"
+    id("com.gradle.plugin-publish") version "2.0.0"
 
-    kotlin("jvm") version "1.7.0"
+    id("com.dorkbox.GradleUtils") version "4.0"
+    id("com.dorkbox.VersionUpdate") version "3.0"
+
+    kotlin("jvm") version "2.3.0"
 }
 
 object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "2.8"
+    const val version = "3.0"
 
     // set as project.ext
     const val name = "Version Update"
@@ -48,19 +50,10 @@ GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
 GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
 
-sourceSets {
-    main {
-        java {
-            setSrcDirs(listOf("src"))
-
-            // want to include kotlin and java files for the source. 'setSrcDirs' resets includes...
-            // NOTE: if we DO NOT do this, then there will not be any sources in the "plugin sources" jar, as it expects only java
-            include("**/*.kt", "**/*.java")
-        }
-    }
-}
-
 dependencies {
+    api(gradleApi())
+    api(gradleKotlinDsl())
+
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
@@ -94,7 +87,7 @@ gradlePlugin {
     vcsUrl.set(Extras.url)
 
     plugins {
-        create("Version") {
+        register("Version") {
             id = "${Extras.group}.${Extras.id}"
             implementationClass = "dorkbox.version.VersionPlugin"
             displayName = Extras.name
