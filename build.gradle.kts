@@ -23,7 +23,8 @@ plugins {
 
     id("com.gradle.plugin-publish") version "2.0.0"
 
-    id("com.dorkbox.GradleUtils") version "4.0"
+    id("com.dorkbox.GradleUtils") version "4.4"
+    id("com.dorkbox.Licensing") version "3.1"
     id("com.dorkbox.VersionUpdate") version "3.0"
 
     kotlin("jvm") version "2.3.0"
@@ -48,7 +49,7 @@ object Extras {
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
-GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
+GradleUtils.compileConfiguration(JavaVersion.VERSION_25)
 
 dependencies {
     api(gradleApi())
@@ -57,7 +58,7 @@ dependencies {
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
-    implementation("org.eclipse.jgit:org.eclipse.jgit:6.1.0.202203080745-r")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:7.5.0.202512021534-r")
     implementation("com.dorkbox:Version:3.1")
 }
 
