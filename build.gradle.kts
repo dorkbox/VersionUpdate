@@ -34,7 +34,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     const val group = "com.dorkbox"
-    const val version = "3.0"
+    const val version = "3.1"
 
     // set as project.ext
     const val name = "Version Update"
@@ -51,6 +51,14 @@ GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
 GradleUtils.compileConfiguration(JavaVersion.VERSION_25)
 
+licensing {
+    license(License.APACHE_2) {
+        description(Extras.description)
+        author(Extras.vendor)
+        url(Extras.url)
+    }
+}
+
 dependencies {
     api(gradleApi())
     api(gradleKotlinDsl())
@@ -59,7 +67,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.5.0.202512021534-r")
-    implementation("com.dorkbox:Version:3.1")
+    implementation("com.dorkbox:Version:3.2")
 }
 
 tasks.jar.get().apply {
