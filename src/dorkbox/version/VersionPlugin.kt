@@ -69,6 +69,14 @@ class VersionPlugin : Plugin<Project> {
         }
 
         project.afterEvaluate {
+            project.plugins.findPlugin("com.dorkbox.GradlePublish")?.let { plugin ->
+                println("\tAutomatic version tagging of git state after MavenCentral release")
+
+                project.tasks.named("publishToMavenAndRelease") {
+                    it.finalizedBy("tag")
+                }
+            }
+
             // just make sure that we have a version defined.
             val version = project.version.toString()
 
