@@ -38,7 +38,7 @@ GradleUtils.load {
     id = "VersionUpdate"
     description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
     name = "Version Update"
-    version = "3.1"
+    version = "3.2"
     vendor = "Dorkbox LLC"
     url = "https://git.dorkbox.com/dorkbox/VersionUpdate"
 }
