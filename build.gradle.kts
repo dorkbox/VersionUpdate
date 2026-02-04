@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 dorkbox, llc
+ * Copyright 2026 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,31 +23,25 @@ plugins {
 
     id("com.gradle.plugin-publish") version "2.0.0"
 
-    id("com.dorkbox.GradleUtils") version "4.5"
+    id("com.dorkbox.GradleUtils") version "4.8"
     id("com.dorkbox.Licensing") version "3.1"
     id("com.dorkbox.VersionUpdate") version "3.1"
 
     kotlin("jvm") version "2.3.0"
 }
 
-object Extras {
-    // set for the project
-    const val description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
-    const val group = "com.dorkbox"
-    const val version = "3.1"
-
-    // set as project.ext
-    const val name = "Version Update"
-    const val id = "VersionUpdate"
-    const val vendor = "Dorkbox LLC"
-    const val vendorUrl = "https://dorkbox.com"
-    const val url = "https://git.dorkbox.com/dorkbox/VersionUpdate"
-}
-
 ///////////////////////////////
 /////  assign 'Extras'
 ///////////////////////////////
-GradleUtils.load("$projectDir/../../gradle.properties", Extras)
+GradleUtils.load {
+    group = "com.dorkbox"
+    id = "VersionUpdate"
+    description = "Gradle Plugin to update version information and git tags within the Gradle project and java/kotlin files"
+    name = "Version Update"
+    version = "3.1"
+    vendor = "Dorkbox LLC"
+    url = "https://git.dorkbox.com/dorkbox/VersionUpdate"
+}
 GradleUtils.defaults()
 GradleUtils.compileConfiguration(JavaVersion.VERSION_25)
 
@@ -70,23 +64,6 @@ dependencies {
     implementation("com.dorkbox:Version:3.2")
 }
 
-tasks.jar.get().apply {
-    manifest {
-        // https://docs.oracle.com/javase/tutorial/deployment/jar/packageman.html
-        attributes["Name"] = Extras.name
-
-        attributes["Specification-Title"] = Extras.name
-        attributes["Specification-Version"] = Extras.version
-        attributes["Specification-Vendor"] = Extras.vendor
-
-        attributes["Implementation-Title"] = "${Extras.group}.${Extras.id}"
-        attributes["Implementation-Version"] = GradleUtils.now()
-        attributes["Implementation-Vendor"] = Extras.vendor
-
-        attributes["Automatic-Module-Name"] = Extras.id
-    }
-}
-
 
 /////////////////////////////////
 ////////    Plugin Publishing + Release
@@ -97,12 +74,12 @@ gradlePlugin {
 
     plugins {
         register("Version") {
-            id = "${Extras.group}.${Extras.id}"
+            id = Extras.groupAndId
             implementationClass = "dorkbox.version.VersionPlugin"
             displayName = Extras.name
             description = Extras.description
-            tags.set(listOf("version", "versioning", "semver", "semantic-versioning"))
             version = Extras.version
+            tags.set(listOf("version", "versioning", "semver", "semantic-versioning"))
         }
     }
 }
